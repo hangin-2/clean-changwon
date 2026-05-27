@@ -80,6 +80,15 @@
         .campaign-banner span { font-size: 15px; font-weight: bold; color: #444; }
         .campaign-banner .accent { color: var(--color-primary); }
 
+        /* 👑 랭킹 테이블 디자인 컴포넌트 */
+        .rank-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .rank-table th, .rank-table td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+        .rank-table th { background: #f8fafc; color: #475569; font-weight: bold; }
+        .rank-row-1 { background: rgba(255, 215, 0, 0.08); font-weight: bold; }
+        .rank-row-2 { background: rgba(192, 192, 192, 0.08); font-weight: bold; }
+        .rank-row-3 { background: rgba(205, 127, 50, 0.08); font-weight: bold; }
+        .badge-crown { font-size: 16px; margin-left: 4px; vertical-align: middle; }
+
         /* 그룹 카드 & 상태 배지 */
         .group-card { border-left: 6px solid var(--color-primary); position: relative; transition: transform 0.2s; }
         .group-card:hover { transform: translateY(-2px); }
@@ -90,7 +99,6 @@
         .status-running { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
         .status-full { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
 
-        /* 👥 실시간 인원 현황 배지 스타일 추가 */
         .badge-members-count { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-left: 5px; }
 
         .badge-active-plogging { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; animation: pulse 2s infinite; }
@@ -104,6 +112,10 @@
         .btn-delete { background: #d32f2f; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
         .btn-close-room { background: #455a64; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
         .btn-reject { background: #e53935; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; margin-top: 10px; margin-left: 5px; }
+        
+        /* 🗑️ 관리자 전용 위험지역 삭제 버튼 스타일 */
+        .btn-report-del { background: #e53935; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold; margin-left: 8px; transition: background 0.2s; }
+        .btn-report-del:hover { background: #b71c1c; }
 
         /* 리스트 목록 컴포넌트 */
         .report-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
@@ -161,7 +173,7 @@
     </nav>
 
     <div id="tab1" class="tab-content active">
-        <div class="card" style="padding: 40px 20px;">
+        <div class="card" style="padding: 40px 20px; margin-bottom: 20px;">
             <div class="dashboard-header">
                 <h1 style="color: var(--color-primary); font-size: 28px; font-weight: bold;">플로깅 메이트</h1>
                 <p>함께 달리고, 함께 줍고, 함께 만드는 깨끗한 우리 동네</p>
@@ -193,6 +205,22 @@
                 <span class="accent">+</span>
                 <span><i class="fa-solid fa-face-smile" style="color: #ff9100;"></i> 보상도 받는 착한 습관!</span>
             </div>
+        </div>
+
+        <div class="card">
+            <h2><i class="fa-solid fa-trophy" style="color: #ffb300;"></i> 실시간 우수 메이트 랭킹 (포인트 순위판)</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">🏆 우리 동네 최고 환경 정화왕은 누구일까요? 1,2,3등에게는 영광의 메달 이관!</p>
+            <table class="rank-table">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">순위</th>
+                        <th style="width: 50%;">아이디 (시민 메이트)</th>
+                        <th style="width: 30%;">누적 보유 마일리지</th>
+                    </tr>
+                </thead>
+                <tbody id="rank-tbody">
+                    </tbody>
+            </table>
         </div>
     </div>
 
@@ -438,6 +466,7 @@
             }
 
             initFirebaseListeners();
+            initRankingListener(); // 👑 실시간 순위판 리스너 가동
         }
 
         function switchTab(tabIndex) {
@@ -455,6 +484,50 @@
             return true;
         }
 
+        // 👑 [피드백 반영] 실시간 유저 포인트 랭킹 수집 및 메달(왕관) 할당 로직
+        function initRankingListener() {
+            db.ref('users').on('value', snapshot => {
+                const tbody = document.getElementById('rank-tbody');
+                tbody.innerHTML = "";
+
+                if(!snapshot.exists()) return;
+
+                let userList = [];
+                snapshot.forEach(child => {
+                    const userId = child.key;
+                    // 관리자 계정은 순위 통계에서 제외
+                    if(userId !== ADMIN_ID) {
+                        userList.push({
+                            id: userId,
+                            points: child.val().points || 0
+                        });
+                    }
+                });
+
+                // 포인트 기준 내림차순 정렬
+                userList.sort((a, b) => b.points - a.points);
+
+                userList.forEach((user, index) => {
+                    const rankNum = index + 1;
+                    let rankClass = "";
+                    let medalEmoji = "";
+
+                    // 1, 2, 3등 왕관 및 메달 이모지 처리 분기
+                    if(rankNum === 1) { rankClass = "rank-row-1"; medalEmoji = '<span class="badge-crown">👑🥇</span>'; }
+                    else if(rankNum === 2) { rankClass = "rank-row-2"; medalEmoji = '<span class="badge-crown">👑🥈</span>'; }
+                    else if(rankNum === 3) { rankClass = "rank-row-3"; medalEmoji = '<span class="badge-crown">👑🥉</span>'; }
+
+                    tbody.innerHTML += `
+                        <tr class="${rankClass}">
+                            <td><strong>${rankNum}위</strong></td>
+                            <td>${user.id} ${medalEmoji}</td>
+                            <td><span style="color:#2e7d32; font-weight:bold;">${user.points} P</span></td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
         function initFirebaseListeners() {
             db.ref('reports').on('value', snapshot => {
                 const listbox = document.getElementById('report-listbox');
@@ -464,6 +537,7 @@
                     return;
                 }
                 snapshot.forEach(child => {
+                    const rKey = child.key;
                     const data = child.val();
                     const escapedRegion = data.region.replace(/'/g, "\\'");
                     const escapedLoc = data.loc.replace(/'/g, "\\'");
@@ -480,6 +554,12 @@
 
                     let ploggingBadgeHtml = isPloggingOpen ? `<span class="badge-active-plogging"><i class="fa-solid fa-person-running"></i> 플로깅 열림</span>` : "";
 
+                    // 🗑️ [피드백 반영] 최고 관리자 로그인 시 부적절 신고 삭제 버튼 노출
+                    let adminDeleteBtn = "";
+                    if(CURRENT_USER === ADMIN_ID) {
+                        adminDeleteBtn = `<button class="btn-report-del" onclick="event.stopPropagation(); deleteReport('${rKey}')">🗑️ 신고 파기</button>`;
+                    }
+
                     listbox.innerHTML += `
                         <div class="report-item" ondblclick="bridgeReportToCreate('${escapedRegion}', '${escapedLoc}', '${escapedStatus}')">
                             <div class="report-header">
@@ -487,7 +567,10 @@
                                     <span class="badge-region">📍 ${data.region}</span>
                                     <strong style="font-size:14px; color:#333;">${data.loc}</strong>
                                 </div>
-                                ${ploggingBadgeHtml}
+                                <div style="display:flex; align-items:center;">
+                                    ${ploggingBadgeHtml}
+                                    ${adminDeleteBtn}
+                                </div>
                             </div>
                             <div style="font-size:13px; color:#555; margin-top:5px; padding-left:5px;">
                                 <strong>오염 실태 기재:</strong> ${data.status || '내용 없음'}
@@ -533,7 +616,6 @@
                     const isHost = g.host === CURRENT_USER;
                     const isAdmin = CURRENT_USER === ADMIN_ID;
 
-                    // 👥 [피드백 반영] 모집 인원 및 현재 참여 멤버 수 실시간 연산 가동
                     const currentMemberCount = g.members ? Object.keys(g.members).length : 0;
                     const maxMemberLimit = g.max_members || 5; 
                     const isFull = currentMemberCount >= maxMemberLimit;
@@ -562,7 +644,6 @@
                     } else if(isJoined) {
                         actionBtn = `<button class="btn-leave" onclick="joinGroup('${key}', false)">모임 탈퇴</button>`;
                     } else {
-                        // 만약 인원이 다 찬 방이라면 합류 버튼 막기 처리
                         if(isFull) {
                             actionBtn = `<button class="btn-leave" style="background:#b0bec5; cursor:not-allowed;" disabled>정원 초과</button>`;
                         } else {
@@ -570,7 +651,6 @@
                         }
                     }
 
-                    // 카드 내부에 인원 현황판을 직관적인 UI 요소로 동적 바인딩
                     container.innerHTML += `
                         <div class="card group-card">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -585,7 +665,7 @@
                             <p style="font-size: 13px; color: #666;">⏰ 약속 일정: ${g.date} (${g.start_time} ~ ${g.end_time})</p>
                             <div class="group-meta">
                                 <div><button class="btn-chat" onclick="openChat('${key}')"><i class="fa-solid fa-comments"></i> 소통방</button></div>
-                                <div style="display:flex; gap:5px;"> ${actionBtn}</div>
+                                <div style="display:flex; gap:5px;">Action: ${actionBtn}</div>
                             </div>
                         </div>
                     `;
@@ -675,6 +755,15 @@
             });
         }
 
+        // 🗑️ [피드백 반영] 관리자 전용 허위/부적절 오염 신고 목록 삭제 기능
+        function deleteReport(reportKey) {
+            if(confirm("🚨 경고: 관리자 권한으로 본 오염 구역 제보를 영구 파기 및 삭제하시겠습니까?")) {
+                db.ref('reports/' + reportKey).remove().then(() => {
+                    alert("🗑️ 해당 오염 신고가 데이터베이스에서 안전하게 파기되었습니다.");
+                });
+            }
+        }
+
         function deleteGroup(gKey) {
             if(confirm(`[${gKey}] 모임을 완전 소멸 파기 처리합니까?`)) {
                 db.ref('groups/' + gKey).remove();
@@ -706,7 +795,7 @@
             const date = document.getElementById('entry-date').value;
             const start = document.getElementById('combo-start').value;
             const end = document.getElementById('combo-end').value;
-            const maxMembers = parseInt(document.getElementById('combo-max-members').value, 10); // 최대인원 정보 수집
+            const maxMembers = parseInt(document.getElementById('combo-max-members').value, 10);
 
             if(!name || !loc || !date) { alert("모든 양식을 채워주세요!"); return; }
 
@@ -720,7 +809,7 @@
             db.ref('groups/' + name).set({
                 host: CURRENT_USER,
                 loc: loc, date: date, start_time: start, end_time: end,
-                max_members: maxMembers, // 실시간 DB 반영
+                max_members: maxMembers,
                 status: "모집중",
                 members: initMembers
             }).then(() => {
@@ -737,7 +826,6 @@
             if(!targetGroup) return;
 
             if(isJoin) {
-                // 🛑 정원 초과 검증 예외 필터 추가
                 const currentMemberCount = targetGroup.members ? Object.keys(targetGroup.members).length : 0;
                 const maxMemberLimit = targetGroup.max_members || 5;
                 if(currentMemberCount >= maxMemberLimit) {
