@@ -86,11 +86,13 @@
         .group-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid #f1f5f9; flex-wrap: wrap; gap: 10px; }
         .badge-host { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-bottom: 8px; display: inline-block; }
         
-        /* ⏰ 신규 상태 배지 디자인 스타일 */
         .badge-status { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-left: 5px; }
         .status-running { background: #e3f2fd; color: #0d47a1; border: 1px solid #bbdefb; }
         .status-timeover { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-        .status-closed { background: #efebe9; color: #4e342e; border: 1px solid #d7ccc8; }
+
+        /* 🏃‍♂️ 플로깅 열림 전용 신규 배지 디자인 스타일 */
+        .badge-active-plogging { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
 
         .btn-chat { background: #ff9100; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
         .btn-chat:hover { background: #e68200; }
@@ -99,11 +101,12 @@
         .btn-leave { background: #757575; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
         .btn-delete { background: #d32f2f; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
         .btn-close-room { background: #455a64; color: white; padding: 8px 16px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; }
+        .btn-reject { background: #e53935; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; margin-top: 10px; margin-left: 5px; }
 
         /* 리스트 목록 컴포넌트 */
         .report-item { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
         .report-item:hover { background: #edf2f7; border-color: var(--color-primary); }
-        .report-header { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
         .badge-region { background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         
         /* 사진 첨부 뷰어 */
@@ -111,6 +114,7 @@
         .cert-feed-item { border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; margin-bottom: 15px; background: white; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
         .cert-feed-img { width: 120px; height: 120px; object-fit: cover; border-radius: 8px; margin-right: 12px; border: 1px solid #eee; }
         .btn-approve { background: var(--color-accent); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .admin-pts-select { padding: 5px; font-size: 13px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -193,6 +197,9 @@
     <div id="tab2" class="tab-content">
         <div class="card">
             <h2><i class="fa-solid fa-triangle-exclamation" style="color: #d32f2f;"></i> 우리 동네의 오염된 장소를 알려주세요!</h2>
+            <div class="form-group" style="margin-top: 10px;">
+                <label style="color:#d32f2f;">⚠️ 과거 날짜/시간대는 신고 접수가 제한됩니다.</label>
+            </div>
             <div class="form-group">
                 <label>창원시 행정구역 선택</label>
                 <select id="combo-region">
@@ -215,7 +222,7 @@
         </div>
         <div class="card">
             <h3 style="font-size: 16px; font-weight: bold; color: #c62828; margin-bottom: 5px;"><i class="fa-solid fa-map"></i> 시민 접수 실시간 위험 구역 목록</h3>
-            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">💡 항목을 <strong style="color:var(--color-primary);">[더블 클릭]</strong>하면 해당 정보가 모임 만들기 창에 자동으로 세팅됩니다.</p>
+            <p style="font-size: 12px; color: #666; margin-bottom: 15px;">💡 항목을 <strong>[더블 클릭]</strong>하면 해당 정보가 모임 만들기 창에 자동으로 세팅됩니다.</p>
             <div id="report-listbox"></div>
         </div>
     </div>
@@ -223,6 +230,9 @@
     <div id="tab3" class="tab-content">
         <div class="card">
             <h2><i class="fa-solid fa-calendar-plus" style="color: var(--color-primary);"></i> 새로운 플로깅 모임 개설</h2>
+            <div class="form-group" style="margin-top: 10px;">
+                <label style="color:#d32f2f;">⚠️ 현재 시각 기준 과거의 시간대로는 모임을 열 수 없습니다.</label>
+            </div>
             <div class="form-group">
                 <label>행정구역 및 연동 구역</label>
                 <select id="entry-gregion">
@@ -235,11 +245,11 @@
             </div>
             <div class="form-group">
                 <label>모임 이름</label>
-                <input type="text" id="entry-gname" placeholder="예: 성북천 플로깅 함께해요!">
+                <input type="text" id="entry-gname" placeholder="예: 창원천 플로깅 함께해요!">
             </div>
             <div class="form-group">
-                <label>활동 장소 / 집결지</label>
-                <input type="text" id="entry-gloc" placeholder="예: 성북천 산책로 (보문교 앞 집결)">
+                <label>활동 장소 / 집결지 (위험구역 상세 위치명과 동일해야 '플로깅 열림' 배지가 활성화됩니다)</label>
+                <input type="text" id="entry-gloc" placeholder="예: 창원천 산책로 보문교 다리 밑 전신주 옆">
             </div>
             <div class="form-group">
                 <label>참여 예정 날짜</label>
@@ -248,15 +258,6 @@
             <div class="form-group" style="display: flex; gap: 15px;">
                 <div style="flex: 1;"><label>출발/시작 시간</label><select id="combo-start"></select></div>
                 <div style="flex: 1;"><label>해산/종료 시간</label><select id="combo-end"></select></div>
-            </div>
-            <div class="form-group">
-                <label>🎁 인증 완료 시 지급할 시민 마일리지 포인트 액수 설정</label>
-                <select id="combo-gpoints">
-                    <option value="30">30P (간단한 정화 활동)</option>
-                    <option value="50" selected>50P (보통 수준의 정화 활동)</option>
-                    <option value="70">70P (다소 무거운 쓰레기 수거 활동)</option>
-                    <option value="100">100P (강도 높은 대형 방치 구역 정화)</option>
-                </select>
             </div>
             <button class="btn-submit" onclick="createGroup()">📅 방장 권한으로 모임방 가동</button>
         </div>
@@ -270,7 +271,7 @@
     <div id="tab5" class="tab-content">
         <div class="card" id="upload-card">
             <h2><i class="fa-solid fa-shield-halved" style="color: #1976d2;"></i> 정화 활동 사진 인증 (포인트 리워드 센터)</h2>
-            <p style="font-size:12px; color:#d32f2f; margin-bottom:15px; font-weight:bold;">⚠️ 방장이 활동 종료(인증 활성화) 처리를 완료한 종료 모임만 리스트에 표시됩니다.</p>
+            <p style="font-size:12px; color:#d32f2f; margin-bottom:15px; font-weight:bold;">⚠️ 방장이 활동 종료 처리를 완료한 모임만 리스트에 표시됩니다.</p>
             <div class="form-group">
                 <label>인증을 진행할 종료된 소속 모임 선택</label>
                 <select id="combo-cert-group"><option value="">-- 모임을 선택하세요 --</option></select>
@@ -300,7 +301,7 @@
         <div style="background:white; width:440px; height:540px; border-radius:12px; display:flex; flex-direction:column; overflow:hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.25);">
             <div style="background:var(--color-primary); color:white; padding:18px; font-weight:bold; display:flex; justify-content:space-between; align-items:center;">
                 <span id="chat-room-title"><i class="fa-solid fa-comments"></i> 대화방</span>
-                <span style="cursor:pointer; font-size: 14px; background: rgba(0,0,0,0.15); padding: 4px 10px; border-radius: 4px sights;" onclick="document.getElementById('chat-modal').style.display='none'">닫기 X</span>
+                <span style="cursor:pointer; font-size: 14px; background: rgba(0,0,0,0.15); padding: 4px 10px; border-radius: 4px;" onclick="document.getElementById('chat-modal').style.display='none'">닫기 X</span>
             </div>
             <div id="chat-messages-container" style="flex:1; padding:20px; overflow-y:auto; font-size:14px; background: #f4f7f5; line-height: 1.5;"></div>
             <div style="display:flex; padding:12px; border-top:1px solid #eee; background: white;">
@@ -311,7 +312,6 @@
     </div>
 
     <script>
-        // 파이어베이스 설정 연동
         const firebaseConfig = {
             apiKey: "AIzaSyAFLEnivhQipjRVGLYOezB1l8osHBL3Yc",
             authDomain: "hello-jiyeok.firebaseapp.com",
@@ -329,7 +329,6 @@
         let currentOpenChatRoom = ""; 
         let allGroupsCache = {}; 
         
-        // 시간 콤보박스 생성 (시간 단위를 숫자로 파싱하기 용이하게 00 ~ 23 형태로 표기)
         const startCombo = document.getElementById('combo-start');
         const endCombo = document.getElementById('combo-end');
         for(let i=0; i<24; i++) {
@@ -414,7 +413,7 @@
 
         function initApp() {
             let rankStr = CURRENT_USER === ADMIN_ID ? "⭐ 총괄 관리 마스터" : "시민 활동가";
-            document.getElementById('user-badge').innerText = `👤 [${rankStr}] ${CURRENT_USER}님`;
+            document.getElementById('user-badge').innerText = `👤 [${rankStr}] ${CURRENT_USER} network`;
             
             db.ref('users/' + CURRENT_USER + '/points').on('value', snap => {
                 const pts = snap.val() || 0;
@@ -435,8 +434,22 @@
             document.querySelectorAll('.nav-btn')[tabIndex-1].classList.add('active');
         }
 
+        // ⏰ 시간 유효성 공통 체크 헬퍼 함수 (과거 차단용)
+        function checkPastTimeValidation(targetDateStr, hourStr) {
+            const now = new Date();
+            const targetHour = parseInt(hourStr.replace("시", ""), 10);
+            
+            const selectedDateTime = new Date(targetDateStr + "T" + String(targetHour).padStart(2, '0') + ":00:00");
+            
+            // 현재보다 이전 시간인지 비교
+            if(selectedDateTime < now) {
+                return false; 
+            }
+            return true;
+        }
+
         function initFirebaseListeners() {
-            // 🚨 오염 구역 실시간 위협 데이터베이스 목록화 갱신 트리거 및 더블클릭 브릿지 연동
+            // 🚨 오염 구역 렌더링 + '플로깅 열림' 실시간 연동 매핑
             db.ref('reports').on('value', snapshot => {
                 const listbox = document.getElementById('report-listbox');
                 listbox.innerHTML = "";
@@ -446,16 +459,30 @@
                 }
                 snapshot.forEach(child => {
                     const data = child.val();
-                    // double click 시 입력 폼 자동 포커싱용 문자열화 이스케이프 인자화
                     const escapedRegion = data.region.replace(/'/g, "\\'");
                     const escapedLoc = data.loc.replace(/'/g, "\\'");
                     const escapedStatus = (data.status || '').replace(/'/g, "\\'").replace(/\n/g, " ");
 
+                    // 🏃‍♂️ 현재 활성화된 모임(진행중/모집중) 중 이 상세 위치와 정확히 매치되는 것이 있는지 확인
+                    let isPloggingOpen = false;
+                    for (let gKey in allGroupsCache) {
+                        const g = allGroupsCache[gKey];
+                        if (g.loc === data.loc && g.status !== "종료") {
+                            isPloggingOpen = true;
+                            break;
+                        }
+                    }
+
+                    let ploggingBadgeHtml = isPloggingOpen ? `<span class="badge-active-plogging"><i class="fa-solid fa-person-running"></i> 플로깅 열림</span>` : "";
+
                     listbox.innerHTML += `
                         <div class="report-item" ondblclick="bridgeReportToCreate('${escapedRegion}', '${escapedLoc}', '${escapedStatus}')">
                             <div class="report-header">
-                                <span class="badge-region">📍 ${data.region}</span>
-                                <strong style="font-size:14px; color:#333;">${data.loc}</strong>
+                                <div>
+                                    <span class="badge-region">📍 ${data.region}</span>
+                                    <strong style="font-size:14px; color:#333;">${data.loc}</strong>
+                                </div>
+                                ${ploggingBadgeHtml}
                             </div>
                             <div style="font-size:13px; color:#555; margin-top:5px; padding-left:5px;">
                                 <strong>오염 실태 기재:</strong> ${data.status || '내용 없음'}
@@ -464,7 +491,7 @@
                 });
             });
 
-            // 플로깅 소집 모임방 일체 모니터링 연동
+            // 📅 모임 리스트 트래킹 및 만료 모임 자동 청소 파기
             db.ref('groups').on('value', snapshot => {
                 const container = document.getElementById('group-container');
                 const certCombo = document.getElementById('combo-cert-group');
@@ -472,7 +499,6 @@
                 certCombo.innerHTML = `<option value="">-- 모임을 선택하세요 --</option>`;
                 allGroupsCache = {};
 
-                // 시간 비교용 금일 정보 추적 객체화
                 const now = new Date();
                 const nowYear = now.getFullYear();
                 const nowMonth = String(now.getMonth() + 1).padStart(2, '0');
@@ -483,92 +509,84 @@
                 snapshot.forEach(child => {
                     const key = child.key;
                     const g = child.val();
+                    
+                    const endH = parseInt(g.end_time.replace("시", ""), 10);
+                    
+                    // 🗑️ [피드백 구현] 약속 일정이 아예 지난 경우 데이터베이스에서 자동 삭제 처리
+                    let isTimeExpired = false;
+                    if (g.date < todayFormatted) {
+                        isTimeExpired = true;
+                    } else if (g.date === todayFormatted && currentHour >= endH) {
+                        isTimeExpired = true;
+                    }
+
+                    if (isTimeExpired || g.status === "종료") {
+                        // 만료되거나 종료된 모임은 화면 목록 노출 차단 및 원천 삭제 (보상 연동 백업은 메모리에서 유지)
+                        db.ref('groups/' + key).remove();
+                        return; 
+                    }
+
                     allGroupsCache[key] = g;
 
                     const isJoined = g.members && g.members[CURRENT_USER];
                     const isHost = g.host === CURRENT_USER;
                     const isAdmin = CURRENT_USER === ADMIN_ID;
 
-                    // ⏰ 약속 기간 및 조건식 분석 로직 실시간 가동
-                    let statusLabel = "";
-                    let statusClass = "";
-                    
+                    let statusLabel = "모집중";
+                    let statusClass = "status-running";
                     const startH = parseInt(g.start_time.replace("시", ""), 10);
-                    const endH = parseInt(g.end_time.replace("시", ""), 10);
-
-                    if (g.status === "종료") {
-                        statusLabel = "활동 종료";
-                        statusClass = "status-closed";
-                    } else {
-                        // 날짜 및 타임스탬프 계산 대조
-                        if (g.date < todayFormatted) {
-                            statusLabel = "종료 가능 (기간만료)";
-                            statusClass = "status-timeover";
-                        } else if (g.date === todayFormatted) {
-                            if (currentHour >= endH) {
-                                statusLabel = "종료 가능 (시간경과)";
-                                statusClass = "status-timeover";
-                            } else if (currentHour >= startH && currentHour < endH) {
-                                statusLabel = "진행중";
-                                statusClass = "status-running";
-                            } else {
-                                statusLabel = "모집중 (당일 대기)";
-                                statusClass = "status-running";
-                            }
-                        } else {
-                            statusLabel = "모집중 (대기상태)";
-                            statusClass = "status-running";
-                        }
+                    
+                    if (g.date === todayFormatted && currentHour >= startH && currentHour < endH) {
+                        statusLabel = "진행중";
                     }
 
                     let actionBtn = "";
-                    // 방장만의 스페셜 권한: 모임방 종료 플래그 트리거 추가 배치
                     let hostFinishBtn = "";
-                    if (isHost && g.status !== "종료") {
-                        hostFinishBtn = `<button class="btn-close-room" onclick="closeGroupPlogging('${key}')">🚩 플로깅 종료 및 인증 활성화</button>`;
+                    if (isHost) {
+                        // 🚩 방장이 종료 처리를 누르면 즉시 파기(삭제) 및 대원 채팅방 공지
+                        hostFinishBtn = `<button class="btn-close-room" onclick="closeAndDestroyGroup('${key}')">🚩 플로깅 완료(종료 및 즉시파기)</button>`;
                     }
 
                     if(isAdmin) {
-                        actionBtn = `<button class="btn-delete" onclick="deleteGroup('${key}')">⚡ 강제 삭제 (관리자)</button>`;
+                        actionBtn = `<button class="btn-delete" onclick="deleteGroup('${key}')">⚡ 강제 삭제</button>`;
                     } else if(isHost) {
-                        actionBtn = `${hostFinishBtn} <button class="btn-delete" onclick="deleteGroup('${key}')">모임 폭파</button>`;
+                        actionBtn = `${hostFinishBtn} <button class="btn-delete" onclick="deleteGroup('${key}')">폭파</button>`;
                     } else if(isJoined) {
                         actionBtn = `<button class="btn-leave" onclick="joinGroup('${key}', false)">모임 탈퇴</button>`;
                     } else {
-                        // 만약 이미 종료된 상태의 모임이라면 가입 불가 처리
-                        if(g.status === "종료") {
-                            actionBtn = `<button class="btn-leave" style="background:#b0bec5; cursor:not-allowed;" disabled>종료된 모임</button>`;
-                        } else {
-                            actionBtn = `<button class="btn-join" onclick="joinGroup('${key}', true)">플로깅 대열 합류</button>`;
-                        }
+                        actionBtn = `<button class="btn-join" onclick="joinGroup('${key}', true)">대열 합류</button>`;
                     }
 
-                    const ptsAllocated = g.reward_points || 50;
-
                     container.innerHTML += `
-                        <div class="card group-card" style="${g.status === '종료' ? 'border-left-color: #90a4ae; opacity: 0.85;' : ''}">
+                        <div class="card group-card">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div class="badge-host">👑 소집 대장: ${g.host}</div>
-                                <div class="badge-status ${statusClass}">${statusLabel} [💰${ptsAllocated}P]</div>
+                                <div class="badge-status ${statusClass}">${statusLabel}</div>
                             </div>
-                            <h3 style="color: ${g.status === '종료' ? '#546e7a' : 'var(--color-primary)'}; font-size:17px; margin-bottom:5px;">${key}</h3>
+                            <h3 style="color: var(--color-primary); font-size:17px; margin-bottom:5px;">${key}</h3>
                             <p style="font-size: 14px; margin: 4px 0;">📍 활동 타겟지: ${g.loc}</p>
                             <p style="font-size: 13px; color: #666;">⏰ 약속 일정: ${g.date} (${g.start_time} ~ ${g.end_time})</p>
                             <div class="group-meta">
-                                <div><button class="btn-chat" onclick="openChat('${key}')"><i class="fa-solid fa-comments"></i> 실시간 소통방</button></div>
-                                <div style="display:flex; gap:5px;">${actionBtn}</div>
+                                <div><button class="btn-chat" onclick="openChat('${key}')"><i class="fa-solid fa-comments"></i> 소통방</button></div>
+                                <div style="display:flex; gap:5px;">Action: ${actionBtn}</div>
                             </div>
                         </div>
                     `;
+                });
 
-                    // 🛡️ [피드백 요구조건 구현] 방장이 완전히 종료 처리를 끝마친 모임만 인증 콤보박스에 로드됨
-                    if((isJoined || isAdmin) && g.status === "종료") {
-                        certCombo.innerHTML += `<option value="${key}">${key}</option>`;
-                    }
+                // 🛡️ 종료 아카이브에서 내가 가입되어있던 내역만 로드되도록 연동
+                db.ref('closed_groups_archive').once('value', archSnap => {
+                    archSnap.forEach(ac => {
+                        const roomName = ac.key;
+                        const roomData = ac.val();
+                        if (roomData.members && roomData.members[CURRENT_USER]) {
+                            certCombo.innerHTML += `<option value="${roomName}">${roomName}</option>`;
+                        }
+                    });
                 });
             });
 
-            // 영수증 형태의 인증 피드 처리
+            // 🌱 활동 인증 피드판 (관리자 수동 포인트 책정 및 인증 거부 시스템 장착)
             db.ref('certs').on('value', snapshot => {
                 const container = document.getElementById('cert-feed-container');
                 container.innerHTML = "";
@@ -576,47 +594,69 @@
                     const k = child.key;
                     const c = child.val();
                     
-                    // 해당 방 데이터 원천 연동을 파악하여 커스텀 지정 배정치 불러오기
-                    const targetGroupMeta = allGroupsCache[c.g_name];
-                    const givePts = (targetGroupMeta && targetGroupMeta.reward_points) ? parseInt(targetGroupMeta.reward_points, 10) : 50;
-
-                    let adminBtn = "";
+                    let adminControlPanel = "";
                     if(CURRENT_USER === ADMIN_ID && !c.verified) {
-                        adminBtn = `<button class="btn-approve" onclick="approveCert('${k}', '${c.user}', ${givePts})">✅ 최종 실사 승인 (${givePts}P 원격 인가)</button>`;
+                        // 💰 [피드백 반영] 포인트 설정을 관리자가 승인 시 직접 선택하도록 명시
+                        adminControlPanel = `
+                            <div style="margin-top: 12px; background: #f1f5f9; padding: 10px; border-radius: 6px;">
+                                <label style="font-weight:bold; font-size:13px; color:#333;">🎁 지급 마일리지 책정: </label>
+                                <select id="pts-select-${k}" class="admin-pts-select">
+                                    <option value="30">30P (간단 정화)</option>
+                                    <option value="50" selected>50P (보통 정화)</option>
+                                    <option value="70">70P (다소 무거움)</option>
+                                    <option value="100">100P (고강도 대형)</option>
+                                </select>
+                                <button class="btn-approve" style="margin-top:0; margin-left:5px;" onclick="approveCertWithCustomPoints('${k}', '${c.user}')">✅ 최종 승인</button>
+                                <button class="btn-reject" onclick="rejectCertification('${k}')">❌ 부적절 인증 거부</button>
+                            </div>
+                        `;
                     }
 
-                    let statusStr = c.verified ? "<span style='color:green; font-weight:bold;'>[검증 완료]</span>" : "<span style='color:red; font-weight:bold;'>[심사 대기중]</span>";
+                    let statusStr = c.verified ? `<span style='color:green; font-weight:bold;'>[승인 완료 +${c.reward_points}P]</span>` : "<span style='color:red; font-weight:bold;'>[심사 대기중]</span>";
 
                     container.innerHTML += `
                         <div class="cert-feed-item">
-                            <div style="font-weight:bold; margin-bottom:12px; font-size:14px;">${statusStr} 👤 ${c.user} 활동가 -> [${c.g_name}] 정화 보고서 제출 (${givePts}P 분량)</div>
+                            <div style="font-weight:bold; margin-bottom:12px; font-size:14px;">${statusStr} 👤 ${c.user} 활동가 -> [${c.g_name}] 정화 보고서 제출</div>
                             <div style="display:flex; gap:15px; margin-bottom:5px;">
                                 <div><img src="${c.before}" class="cert-feed-img"><br><small style="color:#666; font-weight:bold;">Before (정화 전)</small></div>
                                 <div><img src="${c.after}" class="cert-feed-img"><br><small style="color:#2e7d32; font-weight:bold;">After (정화 후)</small></div>
                             </div>
-                            ${adminBtn}
+                            ${adminControlPanel}
                         </div>
                     `;
                 });
             });
         }
 
-        // 📍 [피드백 구현] 더블클릭 연동 브릿지 함수 생성
         function bridgeReportToCreate(region, loc, status) {
             document.getElementById('entry-gregion').value = region;
             document.getElementById('entry-gname').value = `🌱 ${loc} 긴급 정화조`;
-            document.getElementById('entry-gloc').value = `${region} ${loc}`;
+            document.getElementById('entry-gloc').value = loc; // 상세위치 주소 매핑 일치 처리
             
             alert(`📍 [${loc}] 구역 정보가 복사되었습니다!\n'모임 만들기' 창으로 즉시 이동합니다.`);
             switchTab(3);
         }
 
+        // 🚨 오염 구역 신고 기능 (과거 차단 로직 탑재)
         function submitReport() {
             const region = document.getElementById('combo-region').value;
             const loc = document.getElementById('entry-loc').value.trim();
             const status = document.getElementById('entry-status').value.trim();
 
             if(!loc) { alert("상세 위치명을 명시해 주세요!"); return; }
+
+            // ⏰ 현재 날짜의 정시 기준 임의 실시간 차단 검증 기믹
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const dateStr = String(today.getDate()).padStart(2, '0');
+            const todayStr = `${year}-${month}-${dateStr}`;
+            const currentHourStr = String(today.getHours()).padStart(2, '0') + "시";
+
+            if(!checkPastTimeValidation(todayStr, currentHourStr)) {
+                alert("🚫 신고 불가! 시스템 타임라인상 과거 시간 범위는 안전 제보를 접수할 수 없습니다.");
+                return;
+            }
 
             db.ref('reports').push({
                 region: region,
@@ -626,8 +666,6 @@
                 alert("🚨 위협 현장이 리빙랩 맵 서버에 기록 매핑되었습니다!");
                 document.getElementById('entry-loc').value = "";
                 document.getElementById('entry-status').value = "";
-            }).catch(err => {
-                alert("기록 전송 실패: " + err);
             });
         }
 
@@ -638,45 +676,59 @@
             }
         }
 
-        // 🚩 방장 고유 기능: 플로깅 종료 완료 가동 처리
-        function closeGroupPlogging(gKey) {
-            if(confirm(`[${gKey}] 플로깅 활동을 정말 완료하셨습니까?\n종료 완료 처리 이후부터 대원들이 Before/After 사진 인증을 접수할 수 있습니다.`)) {
-                db.ref(`groups/${gKey}`).update({ status: "종료" }).then(() => {
-                    db.ref(`chats/${gKey}`).push({ user: "[시스템]", msg: "🚨 방장님이 이 모임의 플로깅이 완료되었다고 보고했습니다! 이제 [활동 인증 및 보상] 탭으로 가서 사진을 업로드해 주세요!" });
-                    alert("🚩 종료 상태가 데이터베이스에 마킹 완료되었습니다.");
+        // 🚩 방장 종료 처리 즉시 영구 파기 및 아카이브 이관 로직
+        function closeAndDestroyGroup(gKey) {
+            if(confirm(`[${gKey}] 플로깅 활동을 완료하셨습니까?\n확인 시 모임 목록에서 본 대열은 자동으로 안전하게 파기 처리되며, 대원들의 활동 인증 권한이 개방됩니다.`)) {
+                db.ref(`groups/${gKey}`).once('value', snap => {
+                    if(snap.exists()) {
+                        const originalData = snap.val();
+                        // 아카이브 전송
+                        db.ref(`closed_groups_archive/${gKey}`).set({
+                            members: originalData.members || {},
+                            host: originalData.host,
+                            loc: originalData.loc
+                        }).then(() => {
+                            // 원본 데이터 파기 제거
+                            db.ref(`groups/${gKey}`).remove();
+                            alert("🚩 모임이 안전하게 정리 종료되었습니다.\n인증센터 콤보박스에 등록되었습니다.");
+                        });
+                    }
                 });
             }
         }
 
+        // 📅 모임 만들기 (과거 시간 조건 제어 엔진 장착)
         function createGroup() {
             const name = document.getElementById('entry-gname').value.trim();
             const loc = document.getElementById('entry-gloc').value.trim();
             const date = document.getElementById('entry-date').value;
             const start = document.getElementById('combo-start').value;
             const end = document.getElementById('combo-end').value;
-            const pts = document.getElementById('combo-gpoints').value; // 방장 위임 액수 선택치
 
             if(!name || !loc || !date) { alert("모든 양식을 채워주세요!"); return; }
+
+            // ⏰ 과거 시간 유효성 정밀 검증 서브넷 루틴 가동
+            if(!checkPastTimeValidation(date, start)) {
+                alert("🚫 개설 불가능!\n현재 시각 기준 과거의 시간대나 지난 날짜에는 플로깅 대열 모임을 신설할 수 없습니다.");
+                return;
+            }
 
             let initMembers = {}; initMembers[CURRENT_USER] = true;
             
             db.ref('groups/' + name).set({
                 host: CURRENT_USER,
                 loc: loc, date: date, start_time: start, end_time: end,
-                reward_points: parseInt(pts, 10),
                 status: "모집중",
                 members: initMembers
             }).then(() => {
-                db.ref('chats/' + name).push({ user: "[시스템]", msg: `방장(${CURRENT_USER})님이 모임방을 생성했습니다. 보상 가치는 [${pts}P]로 명시되었습니다.` });
-                alert("🏆 모임 생성이 완료되어 방장 권한이 위임되었습니다.");
+                db.ref(`chats/${name}`).push({ user: "[시스템]", msg: `방장(${CURRENT_USER})님이 모임방을 신설 구축했습니다.` });
+                alert("🏆 모임 생성이 완료되었습니다.");
                 switchTab(4);
-                // 입력 필드 클리어화
                 document.getElementById('entry-gname').value = "";
                 document.getElementById('entry-gloc').value = "";
             });
         }
 
-        // 🚫 [피드백 구현] 시간 겹침 검증 로직이 장착된 플로깅 대열 참여 제어
         function joinGroup(gKey, isJoin) {
             if(isJoin) {
                 const targetGroup = allGroupsCache[gKey];
@@ -686,20 +738,15 @@
                 const targetStart = parseInt(targetGroup.start_time.replace("시", ""), 10);
                 const targetEnd = parseInt(targetGroup.end_time.replace("시", ""), 10);
 
-                // 🛑 중복 여부 판정 순회 가동 시작
                 let timeOverlapConflict = false;
                 let conflictingGroupName = "";
 
                 for(let otherKey in allGroupsCache) {
-                    if(otherKey === gKey) continue;
                     const o = allGroupsCache[otherKey];
-                    
-                    // 가입 여부 및 날짜 일치 조건 확인
-                    if(o.members && o.members[CURRENT_USER] && o.date === targetDate && o.status !== "종료") {
+                    if(o.members && o.members[CURRENT_USER] && o.date === targetDate) {
                         const otherStart = parseInt(o.start_time.replace("시", ""), 10);
                         const otherEnd = parseInt(o.end_time.replace("시", ""), 10);
 
-                        // 시간 대조 집합 겹침 판정 연산 (수학적 겹침 레이아웃 조건)
                         if (targetStart < otherEnd && targetEnd > otherStart) {
                             timeOverlapConflict = true;
                             conflictingGroupName = otherKey;
@@ -709,7 +756,7 @@
                 }
 
                 if(timeOverlapConflict) {
-                    alert(`🚫 중복 참여 불가 경고!\n동일한 날짜(${targetDate})의 해당 시간대에는 이미 참여 중인 모임 [${conflictingGroupName}]이(가) 스케줄상 존재합니다.\n동 시간대 중복 활동은 불가능합니다!`);
+                    alert(`🚫 중복 참여 불가 경고!\n동일한 날짜의 해당 시간대에는 이미 참여 중인 모임 [${conflictingGroupName}]이 스케줄상 존재합니다.`);
                     return;
                 }
 
@@ -764,21 +811,32 @@
                 before: beforeB64, after: afterB64,
                 verified: false
             }).then(() => {
-                alert("🛡️ 보고서가 정상 송출되었습니다. 마스터 승인 시 설정된 마일리지가 누적 지급됩니다.");
+                alert("🛡️ 보고서가 정상 송출되었습니다. 마스터 최종 심사를 대기합니다.");
                 document.getElementById('file-before').value = ""; document.getElementById('file-after').value = "";
                 document.getElementById('preview-before').style.display = "none"; document.getElementById('preview-after').style.display = "none";
             });
         }
 
-        // 💰 [피드백 반영 완료] 방장이 사전 위임 규정한 포인트 변수로 동적 원격 인가 처리
-        function approveCert(certKey, targetUser, ptsAmount) {
-            if(confirm(`활동가 [${targetUser}] 시민의 정화 결과물을 인가 처리합니까?\n확인 시 방장이 설정했던 [${ptsAmount} 포인트]가 즉시 유저에게 이전 귀속됩니다.`)) {
-                db.ref(`certs/${certKey}`).update({ verified: true });
+        // 💰 [피드백 적용] 관리자가 수동 선택한 커스텀 가치 포인트로 연산 승인 종결 루틴
+        function approveCertWithCustomPoints(certKey, targetUser) {
+            const selectedPts = parseInt(document.getElementById(`pts-select-${certKey}`).value, 10);
+
+            if(confirm(`활동가 [${targetUser}] 시민에게 최종 승인 판정과 함께 [${selectedPts} 포인트]를 전도 지급하시겠습니까?`)) {
+                db.ref(`certs/${certKey}`).update({ verified: true, reward_points: selectedPts });
                 db.ref(`users/${targetUser}/points`).once('value', snap => {
                     let currentPoints = snap.val() || 0;
-                    db.ref(`users/${targetUser}/points`).set(currentPoints + ptsAmount);
+                    db.ref(`users/${targetUser}/points`).set(currentPoints + selectedPts);
                 });
-                alert("원격 지급 인가 승인이 종결되었습니다.");
+                alert("🏅 마일리지 승인 정산 처리가 완료되었습니다.");
+            }
+        }
+
+        // ❌ [피드백 적용] 부적절한 인증 관리자 거부 소멸 처리 기능
+        function rejectCertification(certKey) {
+            if(confirm("🚨 경고: 본 인증 요청은 부적절한 형태(증거 불충분, 가짜 사진 등)로 판단되어 거부 처리하시겠습니까?\n확인 시 목록에서 영구 파기 삭제 처리됩니다.")) {
+                db.ref(`certs/${certKey}`).remove().then(() => {
+                    alert("❌ 부적절한 인증글이 거부 및 폐기 처리되었습니다.");
+                });
             }
         }
 
@@ -813,15 +871,6 @@
             const msg = document.getElementById('chat-input-msg').value.trim();
             if(!msg) return;
             
-            const targetGroup = allGroupsCache[currentOpenChatRoom];
-            const isMember = targetGroup && targetGroup.members && targetGroup.members[CURRENT_USER];
-            const isAdmin = CURRENT_USER === ADMIN_ID;
-            
-            if(!isMember && !isAdmin) {
-                alert("채팅 전송 권한이 박탈되었습니다.");
-                return;
-            }
-
             db.ref(`chats/${currentOpenChatRoom}`).push({ user: CURRENT_USER, msg: msg }).then(()=> {
                 document.getElementById('chat-input-msg').value = "";
             });
