@@ -413,7 +413,7 @@
 
         function initApp() {
             let rankStr = CURRENT_USER === ADMIN_ID ? "⭐ 총괄 관리 마스터" : "시민 활동가";
-            document.getElementById('user-badge').innerText = `👤 [${rankStr}] ${CURRENT_USER} network`;
+            document.getElementById('user-badge').innerText = `👤 [${rankStr}] ${CURRENT_USER} 님`;
             
             db.ref('users/' + CURRENT_USER + '/points').on('value', snap => {
                 const pts = snap.val() || 0;
