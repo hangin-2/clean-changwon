@@ -96,8 +96,7 @@
         .btn-submit:hover { background: var(--color-primary-dark); }
 
         /* 신고 및 모임 리스트 레이아웃 */
-        .report-item { padding: 15px; border-bottom: 1px solid #edf2ed; cursor: pointer; transition: background 0.2s; border-radius: 10px; margin-bottom: 5px; }
-        .report-item:hover { background: var(--color-accent); }
+        .report-item { padding: 15px; border-bottom: 1px solid #edf2ed; border-radius: 10px; margin-bottom: 5px; background: white; display: flex; justify-content: space-between; align-items: center; border: 1px solid #edf2ed; }
         .group-container-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .group-card { border-top: 6px solid var(--color-primary); border-radius: 16px; position: relative; background: white; border-left: 1px solid #e8f0e8; border-right: 1px solid #e8f0e8; border-bottom: 1px solid #e8f0e8;}
         .group-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; border-top: 1px dashed #eee; padding-top: 12px; }
@@ -123,7 +122,7 @@
         .img-preview { max-width: 100%; height: 160px; object-fit: cover; margin-top: 10px; border-radius: 12px; display: none; border: 2px dashed var(--color-secondary); }
         .cert-feed-item { border: 1px solid #edf2ed; padding: 18px; border-radius: 16px; margin-bottom: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.01); }
         .cert-feed-img { width: 110px; height: 110px; object-fit: cover; border-radius: 12px; margin-right: 12px; border: 1px solid #eee; }
-        .btn-approve { background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: bold; margin-top: 8px; }
+        .btn-approve { background: #2196f3; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-weight: bold; }
 
         /* 시간 컴보박스 감싸개 */
         .time-select-container { display: flex; align-items: center; gap: 5px; }
@@ -240,8 +239,8 @@
             <button class="btn-submit" onclick="submitReport()">신고 구역 등록하기</button>
         </div>
         <div class="card">
-            <h3>📋 실시간 신고 현황 목록 (클릭 연동 지원)</h3>
-            <p style="font-size:12px; color:#777; margin-bottom:10px;">항목을 선택하시면 모임 개설 탭의 위치 정보로 자동 세팅됩니다.</p>
+            <h3>📋 실시간 신고 현황 목록</h3>
+            <p style="font-size:12px; color:#777; margin-bottom:10px;">관리자는 허위 또는 부적절한 제보를 강제 삭제할 수 있습니다.</p>
             <div id="report-listbox"></div>
         </div>
     </div>
@@ -320,7 +319,7 @@
         </div>
 
         <div class="card">
-            <h3>🌱 인증 피드 (관리자 승인 모니터링)</h3>
+            <h3>🌱 인증 피드 (관리자 차등 점수 승인 모니터링)</h3>
             <div id="cert-feed-container" style="margin-top: 15px;"></div>
         </div>
     </div>
@@ -493,7 +492,6 @@
         }
 
         function initFirebaseListeners() {
-            // 1. 실시간 랭킹 시스템 동기화 및 캐싱 (명예의 전당)
             db.ref('users').on('value', snapshot => {
                 const tbody = document.getElementById('rank-tbody');
                 tbody.innerHTML = "";
@@ -535,29 +533,38 @@
                 }
             });
 
-            // 2. 민원 신고 실시간 리스너 리렌더링
+            // 1. 민원 신고 리스너 (관리자 삭제 권한 기능 주입)
             db.ref('reports').on('value', snapshot => {
                 const listbox = document.getElementById('report-listbox');
                 listbox.innerHTML = "";
                 if(!snapshot.exists()) {
-                    listbox.innerHTML = `<div style="padding:25px; text-align:center; color:#999; font-size:13px; background:#fafafa; border-radius:12px;">현재 접수된 정화 필요 구역이 없습니다.</div>`;
+                    listbox.innerHTML = `<div style="padding:25px; text-align:center; color:#999; font-size:13px; background:#fafafa; border-radius:12px; width: 100%;">현재 접수된 정화 필요 구역이 없습니다.</div>`;
                     return;
                 }
                 snapshot.forEach(child => {
+                    const key = child.key;
                     const data = child.val();
                     const r = data.region || "";
                     const l = data.loc || "";
                     const s = data.status || "현장 상태 설명 없음";
 
+                    let delBtn = "";
+                    if (CURRENT_USER === ADMIN_ID) {
+                        delBtn = `<button class="btn-delete" style="padding: 4px 10px; font-size:12px; margin-left:10px;" onclick="deleteReport(event, '${key}')">신고 삭제</button>`;
+                    }
+
                     listbox.innerHTML += `
                         <div class="report-item" onclick="selectReportToCreateGroup('${r}', '${l}', '${s.replace(/\n/g, " ")}')">
-                            <div style="font-weight:bold; color:#e53935; margin-bottom:4px;"><i class="fa-solid fa-location-dot"></i> [${r}] ${l}</div>
-                            <div style="font-size:13px; color:#666; padding-left:15px;">📄 <strong>상세 제보 내용:</strong> ${s}</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight:bold; color:#e53935; margin-bottom:4px;"><i class="fa-solid fa-location-dot"></i> [${r}] ${l}</div>
+                                <div style="font-size:13px; color:#666; padding-left:15px;">📄 <strong>상세 제보 내용:</strong> ${s}</div>
+                            </div>
+                            ${delBtn}
                         </div>`;
                 });
             });
 
-            // 3. 플로깅 활성 프로젝트 모임방 리스너 (모집 정원 현황 연동 추가 완료)
+            // 2. 플로깅 활성 프로젝트 모임방 리스너 (종료 시간 경과 자동 숨김 필터 탑재)
             db.ref('groups').on('value', snapshot => {
                 const container = document.getElementById('group-container');
                 const certCombo = document.getElementById('combo-cert-group');
@@ -569,15 +576,27 @@
                     return;
                 }
 
+                const now = new Date();
+
                 snapshot.forEach(child => {
                     const key = child.key;
                     const g = child.val();
+
+                    // [기능 추가] 이미 종료 시간이 경과된 모임은 리스트 표시에서 제외
+                    try {
+                        if (g.date && g.end_time) {
+                            const [endH, endM] = g.end_time.split(":");
+                            const endTargetDateTime = new Date(`${g.date}T${endH}:${endM}:00`);
+                            if (now > endTargetDateTime) {
+                                return; 
+                            }
+                        }
+                    } catch (e) { console.error("시간 파싱 예외 발생: ", e); }
 
                     const isJoined = g.members && g.members[CURRENT_USER];
                     const isHost = g.host === CURRENT_USER;
                     const isAdmin = CURRENT_USER === ADMIN_ID;
 
-                    // [인원수 계산 로직] 현재 멤버 수와 설정된 정원값 가져오기
                     const currentCount = g.members ? Object.keys(g.members).length : 0;
                     const maxCount = g.max_members || 10; 
 
@@ -589,7 +608,6 @@
                     } else if(isJoined) {
                         actionBtn = `<button class="btn-leave" onclick="joinGroup('${key}', false)">팀 나가기</button>`;
                     } else {
-                        // 정원이 가득 찬 경우 버튼 마감 처리 예외 구현
                         if (currentCount >= maxCount) {
                             actionBtn = `<button class="btn-leave" style="background:#b0bec5; cursor:not-allowed;" disabled>모집 마감</button>`;
                         } else {
@@ -620,7 +638,7 @@
                 });
             });
 
-            // 4. 인증 대기 리스너
+            // 3. 사진 인증 피드 (관리자 선택형 포인트 정산 드롭다운 컴보 탑재)
             db.ref('certs').on('value', snapshot => {
                 const container = document.getElementById('cert-feed-container');
                 container.innerHTML = "";
@@ -631,11 +649,23 @@
                 snapshot.forEach(child => {
                     const k = child.key;
                     const c = child.val();
+                    
                     let adminBtn = "";
                     if(CURRENT_USER === ADMIN_ID && !c.verified) {
-                        adminBtn = `<button class="btn-approve" onclick="approveCert('${k}', '${c.user}')">✅ 증빙 승인 (즉시 10P 지급)</button>`;
+                        adminBtn = `
+                            <div style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+                                <select id="points-select-${k}" style="width: auto; padding: 6px; font-size:13px; border-radius:8px;">
+                                    <option value="30">30 포인트</option>
+                                    <option value="50" selected>50 포인트</option>
+                                    <option value="70">70 포인트</option>
+                                    <option value="100">100 포인트</option>
+                                </select>
+                                <button class="btn-approve" onclick="approveCertWithPoints('${k}', '${c.user}')">활동 승인 및 포인트 지급</button>
+                            </div>
+                        `;
                     }
-                    let statusStr = c.verified ? "<span style='color:#4caf50; font-weight:bold;'><i class='fa-solid fa-circle-check'></i> 승인완료</span>" : "<span style='color:#f44336;'><i class='fa-solid fa-hourglass-half'></i> 검토 대기중</span>";
+                    
+                    let statusStr = c.verified ? `<span style='color:#4caf50; font-weight:bold;'><i class='fa-solid fa-circle-check'></i> 승인완료 (${c.granted_points || 10}P)</span>` : "<span style='color:#f44336;'><i class='fa-solid fa-hourglass-half'></i> 검토 대기중</span>";
 
                     container.innerHTML += `
                         <div class="cert-feed-item">
@@ -650,6 +680,16 @@
             });
         }
 
+        // 부적절 민원 제보 삭제 핸들러 (버블링 방지 포함)
+        function deleteReport(event, rKey) {
+            event.stopPropagation();
+            if (confirm("부적절한 내용이나 무작위 도배성 오염 신고로 판정하여 강제 파기 삭제합니까?")) {
+                db.ref('reports/' + rKey).remove().then(() => {
+                    alert("해당 허위/부적절 신고글이 정상적으로 무효화 및 삭제되었습니다.");
+                });
+            }
+        }
+
         function deleteGroup(gKey) {
             if(confirm(`[${gKey}] 모임 및 소통 기록을 안전하게 서버에서 소멸 삭제 처리하시겠습니까?`)) {
                 db.ref('groups/' + gKey).remove();
@@ -657,12 +697,11 @@
             }
         }
 
-        // 고도화 예외 검증 모임 생성 밸리데이션 모듈 (정원값 DB 연동 포함)
         function createGroup() {
             const name = document.getElementById('entry-gname').value.trim();
             const loc = document.getElementById('entry-gloc').value.trim();
             const date = document.getElementById('entry-date').value;
-            const maxMembers = parseInt(document.getElementById('entry-gmax').value, 10); // 정원 데이터 가공 추가
+            const maxMembers = parseInt(document.getElementById('entry-gmax').value, 10);
             
             const sH = document.getElementById('start-hour').value;
             const sM = document.getElementById('start-minute').value;
@@ -707,7 +746,7 @@
             db.ref('groups/' + name).set({
                 host: CURRENT_USER, loc: loc, date: date, 
                 start_time: `${sH}:${sM}`, end_time: `${eH}:${eM}`,
-                max_members: maxMembers, // DB 정원 데이터 주입
+                max_members: maxMembers,
                 members: initMembers
             }).then(() => {
                 db.ref('chats/' + name).push({ user: "[시스템]", msg: `팀 개설 리더(${CURRENT_USER})님이 단체 방을 생성하셨습니다.` });
@@ -730,27 +769,43 @@
             });
         }
 
-        // 팀 참여 로직 (정원 마감 시 진입 원천 차단 기능 장착)
+        // 3회 참여 차단 알고리즘 구현 패치 완료
         function joinGroup(gKey, isJoin) {
             if(isJoin) {
-                db.ref(`groups/${gKey}`).once('value', snap => {
-                    const g = snap.val();
-                    const currentCount = g.members ? Object.keys(g.members).length : 0;
-                    const maxCount = g.max_members || 10;
-
-                    if (currentCount >= maxCount) {
-                        alert("🚫 정원이 가득 차서 더 이상 팀에 참가하실 수 없습니다.");
+                // 이탈 횟수 정보 사전 체크 선행
+                db.ref(`groups/${gKey}/exit_logs/${CURRENT_USER}`).once('value', exitSnap => {
+                    const exitCount = exitSnap.val() || 0;
+                    if (exitCount >= 2) {
+                        alert("🚫 가입 불가: 해당 모임에서 이미 2번 탈퇴한 기록이 확인되어 패널티 규정상 3번째 재참여는 금지됩니다.");
                         return;
                     }
 
-                    db.ref(`groups/${gKey}/members/${CURRENT_USER}`).set(true).then(() => {
-                        db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER} 메이트가 팀에 합류했습니다!` });
+                    db.ref(`groups/${gKey}`).once('value', snap => {
+                        const g = snap.val();
+                        const currentCount = g.members ? Object.keys(g.members).length : 0;
+                        const maxCount = g.max_members || 10;
+
+                        if (currentCount >= maxCount) {
+                            alert("🚫 정원이 가득 차서 더 이상 팀에 참가하실 수 없습니다.");
+                            return;
+                        }
+
+                        db.ref(`groups/${gKey}/members/${CURRENT_USER}`).set(true).then(() => {
+                            db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER} 메이트가 팀에 합류했습니다!` });
+                        });
                     });
                 });
             } else {
-                db.ref(`groups/${gKey}/members/${CURRENT_USER}`).remove().then(() => {
-                    db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER} 메이트가 팀을 탈퇴 이탈했습니다.` });
-                });
+                if (confirm("정말 이 모임에서 탈퇴하시겠습니까? (※ 탈퇴는 최대 2회까지만 허용되며, 3번째부턴 재가입 불가)")) {
+                    db.ref(`groups/${gKey}/exit_logs/${CURRENT_USER}`).once('value', exitSnap => {
+                        let prevExits = exitSnap.val() || 0;
+                        db.ref(`groups/${gKey}/exit_logs/${CURRENT_USER}`).set(prevExits + 1).then(() => {
+                            db.ref(`groups/${gKey}/members/${CURRENT_USER}`).remove().then(() => {
+                                db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER} 메이트가 팀을 탈퇴 이탈했습니다.` });
+                            });
+                        });
+                    });
+                }
             }
         }
 
@@ -796,14 +851,18 @@
             });
         }
 
-        function approveCert(certKey, targetUser) {
-            if(confirm(`${targetUser} 메이트의 사진 진위여부를 확인 완료하고 보상을 정산합니까?`)) {
-                db.ref(`certs/${certKey}`).update({ verified: true });
+        // 선택식 포인트 차등 지급 구현 관리 모듈
+        function approveCertWithPoints(certKey, targetUser) {
+            const selectWidget = document.getElementById(`points-select-${certKey}`);
+            const awardPoints = parseInt(selectWidget.value, 10);
+
+            if(confirm(`${targetUser} 메이트의 증빙 검증을 완료하고 최종 [${awardPoints}P]를 적립 정산합니까?`)) {
+                db.ref(`certs/${certKey}`).update({ verified: true, granted_points: awardPoints });
                 db.ref(`users/${targetUser}/points`).once('value', snap => {
                     let currentPoints = snap.val() || 0;
-                    db.ref(`users/${targetUser}/points`).set(currentPoints + 10);
+                    db.ref(`users/${targetUser}/points`).set(currentPoints + awardPoints);
                 });
-                alert("정산 완료!");
+                alert(`${awardPoints}포인트 정산 처리가 성공적으로 승인되었습니다.`);
             }
         }
         
@@ -830,14 +889,28 @@
             });
         }
 
+        // 미참여자 소통방 진입 전면 거부 차단 기능 구현 완료
         function openChat(gKey) {
-            currentOpenChatRoom = gKey;
-            document.getElementById('chat-room-title').innerText = `💬 [${gKey}] 소통 채널`;
-            document.getElementById('chat-modal').style.display = 'flex';
-            
-            db.ref(`chats/${gKey}`).off();
-            db.ref(`chats/${gKey}`).on('value', snap => {
-                refreshChatWindow(gKey);
+            db.ref(`groups/${gKey}`).once('value', snap => {
+                const groupData = snap.val();
+                
+                // 해당 모임의 가입 여부 및 마스터 등급 판정
+                const isJoined = groupData && groupData.members && groupData.members[CURRENT_USER];
+                const isAdmin = CURRENT_USER === ADMIN_ID;
+
+                if (!isJoined && !isAdmin) {
+                    alert("🚫 접근 제한: 해당 플로깅 모임에 가입하여 소속된 메이트가 아니면 소통 채널방을 열 수 없습니다.");
+                    return;
+                }
+
+                currentOpenChatRoom = gKey;
+                document.getElementById('chat-room-title').innerText = `💬 [${gKey}] 소통 채널`;
+                document.getElementById('chat-modal').style.display = 'flex';
+                
+                db.ref(`chats/${gKey}`).off();
+                db.ref(`chats/${gKey}`).on('value', snap => {
+                    refreshChatWindow(gKey);
+                });
             });
         }
 
