@@ -297,42 +297,35 @@
         <span id="footer-admin-tag" class="admin-tag">총 책임 관리자 모드 가동 중</span>
     </footer>
 
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <script>
-        // 전역 인메모리 핵심 DB 시스템 구조
-        let USER_DB = {
-            "admin": "1234",
-            "정화": "2106",
-            "shinsea4321": "shinsea1234" // 피드백 7번: 지정 고유 최고 관리자 계정 생성
+        // 1. [핵심] 정원이의 파이어베이스 고유 연결 정보 (스냅샷 확인 완료)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFLEnivhQipjRVGLYOezB1l8osHBL3Yc",
+            authDomain: "hello-jiyeok.firebaseapp.com",
+            projectId: "hello-jiyeok",
+            databaseURL: "https://hello-jiyeok-default-rtdb.firebaseio.com",
+            storageBucket: "hello-jiyeok.firebasestorage.app",
+            messagingSenderId: "586616289104",
+            appId: "1:586616289104:web:d5d12c0882b96777f85e55",
+            measurementId: "G-2G4LY17RWL"
         };
+        
+        // 파이어베이스 가동 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // 앱 상태 전역 변수
         let CURRENT_USER = "";
         let IS_ADMIN = false;
-
-        let REPORTED_LIST = [
-            { region: "성산구", loc: "창원천 산책로 다리 밑", type: "플라스틱 컵, 담배꽁초 무단 투기 상습 구역" },
-            { region: "의창구", loc: "도계초등학교 앞 버스정류장", type: "배달 일회용기 방치" }
-        ];
-
-        let GROUPS_DATA = {
-            "창원천 산책로 플로깅": {
-                owner: "admin", // 방장 ID 매핑 (피드백 3번)
-                joined_users: ["admin", "시민A"],
-                current_p: 45, max_p: 50, date: "2026-06-01",
-                chat_history: ["방장: 안녕하세요! 장갑과 집게 꼭 챙겨와주시기 바랍니다.\n"],
-                certs: [
-                    { id: 0, user: "시민A", before: "https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=150&q=80", after: "https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=150&q=80", bonus: "미제출", status: "승인대기" }
-                ]
-            },
-            "창원사랑 환경 수호대": {
-                owner: "정화",
-                joined_users: ["정화"],
-                current_p: 12, max_p: 30, date: "2026-06-05",
-                chat_history: ["[시스템] 방이 생성되었습니다.\n"],
-                certs: []
-            }
-        };
-
         let ACTIVE_CHAT_KEY = "";
         let SELECTED_FEED_REF = null;
+        
+        // 최고 총괄 관리자 아이디 규칙 설정
+        const ADMIN_ID = "shinsea4321";
+        const ADMIN_PW = "shinsea1234";
 
         // 오늘 날짜 기본 세팅 함수 연동
         document.getElementById('group-date').value = new Date().toISOString().substring(0, 10);
@@ -344,48 +337,57 @@
             else document.getElementById('box-login').classList.add('active');
         }
 
-        // 피드백 2번 반영: 가입 처리 후 로그인 창으로 가도록 인터랙션 설계
+        // 2. [수정] 회원가입 -> 파이어베이스 서버에 계정 저장
         function handleRegister() {
             let id = document.getElementById('reg-id').value.trim();
             let pw = document.getElementById('reg-pw').value.trim();
             if(!id || !pw) { alert("아이디와 비밀번호를 빠짐없이 적어주세요!"); return; }
-            if(USER_DB[id]) { alert("이미 존재하는 ID입니다."); return; }
             
-            USER_DB[id] = pw; // 실시간 가입 승인 등록
-            alert(`🎉 계정 생성이 성공적으로 완료되었습니다!\n설정하신 비밀번호로 로그인을 진행해 주세요.`);
-            document.getElementById('reg-id').value = "";
-            document.getElementById('reg-pw').value = "";
-            toggleAuthView('login'); // 즉시 로그인창 소환
+            db.ref('users/' + id).once('value', snapshot => {
+                if(snapshot.exists()) {
+                    alert("이미 존재하는 ID입니다. 로그인 창을 이용해 주세요!");
+                } else {
+                    db.ref('users/' + id).set({ password: pw, points: 0 }).then(() => {
+                        alert(`🎉 계정 생성이 성공적으로 완료되었습니다!\n설정하신 비밀번호로 로그인을 진행해 주세요.`);
+                        document.getElementById('reg-id').value = "";
+                        document.getElementById('reg-pw').value = "";
+                        toggleAuthView('login');
+                    });
+                }
+            });
         }
 
-        // 로그인 티켓 처리기 및 총괄 마스터 권한 스위칭 (피드백 7번 반영)
+        // 3. [수정] 로그인 -> 파이어베이스 실시간 서버 검증 체계
         function handleLogin() {
             let id = document.getElementById('login-id').value.trim();
             let pw = document.getElementById('login-pw').value.trim();
             
-            if(USER_DB[id] && USER_DB[id] === pw) {
-                CURRENT_USER = id;
-                if(id === "shinsea4321") {
-                    IS_ADMIN = true;
-                    document.getElementById('footer-admin-tag').style.display = "inline-block";
-                    alert("👑 [총 책임 관리자 마스터 로그인이 활성화되었습니다]\n모든 모임 강제 제어 및 시민 영수증 심사 권한이 가동됩니다.");
-                } else {
-                    alert(`👋 반갑습니다, ${CURRENT_USER} 시민님! 클린창원 리빙랩에 동참해주셔서 감사합니다.`);
-                }
-                
-                // 화면 페이드 스위칭
-                document.getElementById('auth-container').style.display = "none";
-                document.getElementById('main-container').classList.add('active');
-                document.getElementById('footer-user-id').innerText = CURRENT_USER;
-                
-                // 데이터 그리기 동기화
-                renderReports();
-                renderGroups();
-                syncCertCombobox();
-                renderCertBoard();
-            } else {
-                alert("🔒 인증 에러: 아이디 또는 비밀번호가 틀렸습니다.");
+            // 관리자 계정 예외 처리 (서버에 없더라도 로그인할 수 있도록 사전 동기화)
+            if (id === ADMIN_ID && pw === ADMIN_PW) {
+                db.ref('users/' + ADMIN_ID).set({ password: ADMIN_PW, points: 99999 });
             }
+
+            db.ref('users/' + id).once('value', snapshot => {
+                if(snapshot.exists() && snapshot.val().password === pw) {
+                    CURRENT_USER = id;
+                    if(id === ADMIN_ID) {
+                        IS_ADMIN = true;
+                        document.getElementById('footer-admin-tag').style.display = "inline-block";
+                        alert("👑 [총 책임 관리자 마스터 로그인이 활성화되었습니다]\n모든 모임 강제 제어 및 시민 사진 심사 권한이 가동됩니다.");
+                    } else {
+                        alert(`👋 반갑습니다, ${CURRENT_USER} 시민님! 클린창원 리빙랩에 동참해주셔서 감사합니다.`);
+                    }
+                    
+                    document.getElementById('auth-container').style.display = "none";
+                    document.getElementById('main-container').classList.add('active');
+                    document.getElementById('footer-user-id').innerText = CURRENT_USER;
+                    
+                    // 파이어베이스 실시간 리스너 작동 가동
+                    initFirebaseListeners();
+                } else {
+                    alert("🔒 인증 에러: 아이디 또는 비밀번호가 틀렸습니다.");
+                }
+            });
         }
 
         function switchTab(tabId) {
@@ -395,43 +397,96 @@
             event.target.classList.add('active');
         }
 
-        // [탭2 신고] 렌더링 및 연동 연출
-        function setReportRegion(name) { document.getElementById('report-region').value = name; }
-        function renderReports() {
-            let html = "";
-            REPORTED_LIST.forEach((r, idx) => {
-                html += `<div class="feed-item" onclick="linkReportToGroup(${idx})">
-                    <strong>📍 [${r.region}] ${r.loc}</strong><br>
-                    <span style="font-size:12px; color:#c62828;">실태: ${r.type}</span>
-                </div>`;
+        // 4. [연동] 파이어베이스 데이터 실시간 모니터링 허브 (핵심 엔진)
+        function initFirebaseListeners() {
+            // 신고방 리스트 동기화
+            db.ref('reports').on('value', snapshot => {
+                let html = "";
+                let idx = 0;
+                window.REPORTED_CACHE = [];
+                snapshot.forEach(child => {
+                    let r = child.val();
+                    r.key = child.key;
+                    window.REPORTED_CACHE.push(r);
+                    html += `<div class="feed-item" onclick="linkReportToGroup(${idx})">
+                        <strong>📍 [${r.region}] ${r.loc}</strong><br>
+                        <span style="font-size:12px; color:#c62828;">실태: ${r.type}</span>
+                    </div>`;
+                    idx++;
+                });
+                document.getElementById('report-container').innerHTML = html;
             });
-            document.getElementById('report-container').innerHTML = html;
+
+            // 모임 리스트 동기화
+            db.ref('groups').on('value', snapshot => {
+                let html = "";
+                let select = document.getElementById('cert-group-select');
+                select.innerHTML = "";
+                window.GROUPS_CACHE = {};
+
+                snapshot.forEach(child => {
+                    let key = child.key;
+                    let g = child.val();
+                    window.GROUPS_CACHE[key] = g;
+
+                    let joinedUsers = g.members ? Object.keys(g.members) : [];
+                    let isJoined = joinedUsers.includes(CURRENT_USER);
+                    let btnText = isJoined ? "🏃‍♂️ 참여 취소하기" : "참여하기";
+                    let btnClass = isJoined ? "btn-danger" : "btn-primary";
+                    let showDeleteBtn = (g.owner === CURRENT_USER || IS_ADMIN);
+
+                    html += `<div class="group-card">
+                        <span class="group-badge ${g.owner===CURRENT_USER?'badge-owner':'badge-normal'}">
+                            👑 방장: ${g.owner} ${g.owner === CURRENT_USER ? '(나)' : ''}
+                        </span>
+                        <h3 style="color:var(--color-primary); margin: 3px 0;">🌿 ${key}</h3>
+                        <p style="font-size:13px; color:#444;">📍 장소: ${g.loc || '지정 구역'}</p>
+                        <p style="font-size:13px; font-weight:bold; color:#1565c0;">📅 일시: ${g.date} [⏱️ ${joinedUsers.length}명 / ${g.max_p}명 마감 제한]</p>
+                        
+                        <div class="group-actions">
+                            <button class="btn ${btnClass}" style="width:120px; padding:6px;" onclick="toggleJoinGroup('${key}')">${btnText}</button>
+                            <button class="btn btn-warning" style="width:120px; padding:6px; color:black;" onclick="openChatModal('${key}')">💬 소통방</button>
+                            ${showDeleteBtn ? `<button class="btn btn-danger" style="width:140px; padding:6px; background:#b71c1c;" onclick="deleteGroup('${key}')">🧨 모임 즉시 폭파/삭제</button>` : ''}
+                        </div>
+                    </div>`;
+
+                    // 콤보박스 자동 채우기
+                    let opt = document.createElement('option');
+                    opt.value = key; opt.innerText = key;
+                    select.appendChild(opt);
+                });
+                document.getElementById('group-list-container').innerHTML = html;
+                renderCertBoard();
+            });
         }
+
+        // [신고] 서버 등록
         function submitReport() {
             let reg = document.getElementById('report-region').value;
             let loc = document.getElementById('report-loc').value.trim();
             let type = document.getElementById('report-type').value.trim();
             if(!loc) return;
-            REPORTED_LIST.push({region: reg, loc: loc, type: type || "일반 무단투기 쓰레기"});
-            document.getElementById('report-loc').value = "";
-            document.getElementById('report-type').value = "";
-            renderReports();
-            alert("제보가 지도 데이터베이스에 맵핑되었습니다.");
+            
+            db.ref('reports').push({region: reg, loc: loc, type: type || "일반 무단투기 쓰레기"}).then(() => {
+                document.getElementById('report-loc').value = "";
+                document.getElementById('report-type').value = "";
+                alert("제보가 지도 데이터베이스에 맵핑되었습니다.");
+            });
         }
+
         function linkReportToGroup(idx) {
-            let r = REPORTED_LIST[idx];
+            let r = window.REPORTED_CACHE[idx];
             if(confirm(`이 제보 구역 [${r.loc}] 연동으로 바로 방장이 되어 모임을 개설하시겠습니까?`)) {
                 document.getElementById('group-name').value = r.loc + " 타파 작전";
                 document.getElementById('group-loc').value = `${r.region} ${r.loc}`;
                 switchTab('tab-create');
-                // 탭 버튼 강제 싱크 맞춤 처리
                 document.querySelectorAll('.tab-btn').forEach((b, i) => {
                     if(i===2) b.classList.add('active'); else b.classList.remove('active');
                 });
             }
         }
 
-        // [탭3 모임 개설] 날짜 수용 아키텍처 (피드백 3, 4번)
+        // [모임 개설] 서버 등록
         function createGroup() {
             let name = document.getElementById('group-name').value.trim();
             let loc = document.getElementById('group-loc').value.trim();
@@ -443,246 +498,231 @@
 
             if(!name || !loc || !date) { alert("필수 항목들을 다 채워주세요."); return; }
 
-            GROUPS_DATA[name] = {
-                owner: CURRENT_USER, // 방장 저장 보장
-                joined_users: [CURRENT_USER],
-                current_p: 1, max_p: max, date: date,
-                chat_history: ["[시스템] 방장이 방을 개설했습니다.\n"],
-                certs: []
-            };
+            let members = {};
+            members[CURRENT_USER] = true;
 
-            alert(`📅 [${name}] 모임이 방장 권한으로 신규 개설 및 등록되었습니다.`);
-            document.getElementById('group-name').value = "";
-            document.getElementById('group-loc').value = "";
-            renderGroups();
-            syncCertCombobox();
-            switchTab('tab-join');
+            db.ref('groups/' + name).set({
+                owner: CURRENT_USER,
+                loc: loc, date: date, start_time: start, end_time: end, max_p: max, desc: desc,
+                members: members
+            }).then(() => {
+                db.ref('chats/' + name).push({ msg: `[시스템] 방장(${CURRENT_USER})님이 모임을 개설했습니다.` });
+                alert(`📅 [${name}] 모임이 방장 권한으로 신규 개설 및 등록되었습니다.`);
+                document.getElementById('group-name').value = "";
+                document.getElementById('group-loc').value = "";
+                switchTab('tab-join');
+            });
         }
 
-        // [탭4 참여 및 방장/총괄 삭제 권한 검사 기법] (피드백 3, 8번)
-        function renderGroups() {
-            let html = "";
-            for(let key in GROUPS_DATA) {
-                let g = GROUPS_DATA[key];
-                let isJoined = g.joined_users.includes(CURRENT_USER);
-                let btnText = isJoined ? "🏃‍♂️ 참여 취소하기" : "참여하기";
-                let btnClass = isJoined ? "btn-danger" : "btn-primary";
-                
-                // 방장 혹은 총책임자 관리자 확인 플래그 연동
-                let showDeleteBtn = (g.owner === CURRENT_USER || IS_ADMIN);
-
-                html += `<div class="group-card">
-                    <span class="group-badge ${g.owner===CURRENT_USER?'badge-owner':'badge-normal'}">
-                        👑 방장: ${g.owner} ${g.owner === CURRENT_USER ? '(나)' : ''}
-                    </span>
-                    <h3 style="color:var(--color-primary); margin: 3px 0;">🌿 ${key}</h3>
-                    <p style="font-size:13px; color:#444;">📍 장소: ${g.loc || '지정 구역'}</p>
-                    <p style="font-size:13px; font-weight:bold; color:#1565c0;">📅 일시: ${g.date} [⏱️ ${g.joined_users.length}명 / ${g.max_p}명 마감 제한]</p>
-                    
-                    <div class="group-actions">
-                        <button class="btn ${btnClass}" style="width:120px; padding:6px;" onclick="toggleJoinGroup('${key}')">${btnText}</button>
-                        <button class="btn btn-warning" style="width:120px; padding:6px; color:black;" onclick="openChatModal('${key}')">💬 소통방</button>
-                        ${showDeleteBtn ? `<button class="btn btn-danger" style="width:140px; padding:6px; background:#b71c1c;" onclick="deleteGroup('${key}')">🧨 모임 즉시 폭파/삭제</button>` : ''}
-                    </div>
-                </div>`;
-            }
-            document.getElementById('group-list-container').innerHTML = html;
-        }
-
+        // [참여하기/취소] 서버 통신
         function toggleJoinGroup(key) {
-            let g = GROUPS_DATA[key];
-            let idx = g.joined_users.indexOf(CURRENT_USER);
-            if(idx > -1) {
+            let g = window.GROUPS_CACHE[key];
+            let joinedUsers = g.members ? Object.keys(g.members) : [];
+            let isJoined = joinedUsers.includes(CURRENT_USER);
+
+            if(isJoined) {
                 if(g.owner === CURRENT_USER) { alert("방장님은 참여를 취소할 수 없습니다. 모임을 삭제하려면 [폭파] 버튼을 활용하세요."); return; }
-                g.joined_users.splice(idx, 1);
-                alert("모임 참여가 취소되었습니다.");
+                db.ref(`groups/${key}/members/${CURRENT_USER}`).remove().then(() => {
+                    db.ref(`chats/${key}`).push({ msg: `[알림] ${CURRENT_USER}님이 참여를 취소했습니다.` });
+                    alert("모임 참여가 취소되었습니다.");
+                });
             } else {
-                if(g.joined_users.length >= g.max_p) { alert("모집 정원이 마감되었습니다."); return; }
-                g.joined_users.push(CURRENT_USER);
-                alert(`🎉 [${key}] 모임에 성공적으로 동참했습니다!\n인증 탭에서 사진 검수를 진행할 수 있습니다.`);
+                if(joinedUsers.length >= g.max_p) { alert("모집 정원이 마감되었습니다."); return; }
+                db.ref(`groups/${key}/members/${CURRENT_USER}`).set(true).then(() => {
+                    db.ref(`chats/${key}`).push({ msg: `[알림] 🎉 ${CURRENT_USER}님이 모임에 합류했습니다!` });
+                    alert(`🎉 [${key}] 모임에 성공적으로 동참했습니다!`);
+                });
             }
-            renderGroups();
-            syncCertCombobox();
         }
 
-        // 방장 및 관리자의 모임 영구 삭제 로직 (피드백 3, 8번)
+        // [모임 파기] 서버 제거
         function deleteGroup(key) {
-            let msg = IS_ADMIN ? `[총 책임 관리자 권한] [${key}] 모임을 강제 폐쇄하시겠습니까?` : `👑 방장 권한으로 이 모임을 영구 폐쇄하시겠습니까?\n방장이 퇴장하면 모임은 자동 소멸합니다.`;
+            let msg = IS_ADMIN ? `[총 책임 관리자 권한] [${key}] 모임을 강제 폐쇄하시겠습니까?` : `👑 방장 권한으로 이 모임을 영구 폐쇄하시겠습니까?`;
             if(confirm(msg)) {
-                delete GROUPS_DATA[key];
+                db.ref('groups/' + key).remove();
+                db.ref('chats/' + key).remove();
+                db.ref('certs/' + key).remove();
                 alert("모임이 영구적으로 소멸 및 안전 파기되었습니다.");
-                renderGroups();
-                syncCertCombobox();
             }
         }
 
-        // [탭5 인증 제어 및 파일 인코더 구조] (피드백 1, 6번 버그 해결 코어)
+        // [사진 압축 및 Base64 변환] 사진 첨부 안 되던 버그 완벽 수정
         function previewImage(input, targetId) {
             let file = input.files[0];
             if (file) {
                 let reader = new FileReader();
                 reader.onload = function(e) {
-                    let img = document.getElementById(targetId);
+                    let img = new Image();
+                    img.onload = function() {
+                        // DB 용량 오버 방지를 위한 가로 350px 해상도 다운사이징 압축
+                        let canvas = document.createElement('canvas');
+                        let MAX_WIDTH = 350;
+                        let scale = MAX_WIDTH / img.width;
+                        canvas.width = MAX_WIDTH;
+                        canvas.height = img.height * scale;
+                        
+                        let ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        let compressedB64 = canvas.toDataURL('image/jpeg', 0.5); // 용량 50% 다이어트
+
+                        let targetImg = document.getElementById(targetId);
+                        targetImg.src = compressedB64;
+                        targetImg.style.display = "block";
+                        
+                        if(targetId === 'view-before') document.getElementById('txt-b').style.display='none';
+                        if(targetId === 'view-after') document.getElementById('txt-a').style.display='none';
+                    }
                     img.src = e.target.result;
-                    img.style.display = "block";
-                    // 텍스트 안내 제거
-                    if(targetId === 'view-before') document.getElementById('txt-b').style.display='none';
-                    if(targetId === 'view-after') document.getElementById('txt-a').style.display='none';
                 }
-                reader.readAsDataURL(file); // 로컬 바이너리 파일을 Base64 웹 포맷으로 치환
+                reader.readAsDataURL(file);
             }
         }
 
-        // 실시간 연동 타이핑 서치 오토필터링 필터 (피드백 1번)
-        function handleLiveSearch() {
-            let query = document.getElementById('cert-search').value.toLowerCase().trim();
-            let select = document.getElementById('cert-group-select');
-            select.innerHTML = "";
-            
-            for(let key in GROUPS_DATA) {
-                if(key.toLowerCase().includes(query)) {
-                    let opt = document.createElement('option');
-                    opt.value = key;
-                    opt.innerText = key;
-                    select.appendChild(opt);
-                }
-            }
-            if(select.children.length === 0) {
-                let opt = document.createElement('option');
-                opt.innerText = "🔍 검색 단어와 매칭되는 모임이 없습니다.";
-                select.appendChild(opt);
-            }
-        }
-
-        function syncCertCombobox() {
-            let select = document.getElementById('cert-group-select');
-            select.innerHTML = "";
-            for(let key in GROUPS_DATA) {
-                let opt = document.createElement('option');
-                opt.value = key;
-                opt.innerText = key;
-                select.appendChild(opt);
-            }
-        }
-
-        // 유저 가입 유효성 차단 및 가상 피드 적재
+        // [인증서 제출] 서버 전송
         function submitCertification() {
             let key = document.getElementById('cert-group-select').value;
-            if(!GROUPS_DATA[key]) { alert("올바른 모임을 지정하세요."); return; }
+            if(!window.GROUPS_CACHE[key]) { alert("올바른 모임을 지정하세요."); return; }
             
-            // 철저한 우회 권한 검증 기법 유지
-            let g = GROUPS_DATA[key];
-            if(!g.joined_users.includes(CURRENT_USER)) {
-                alert(`🚨 권한 거부: 시민님은 현재 [${key}] 모임의 참여자가 아닙니다!\n가입한 모임만 증거 사진을 제출할 자격이 주어집니다.`);
+            let g = window.GROUPS_CACHE[key];
+            let joinedUsers = g.members ? Object.keys(g.members) : [];
+            if(!joinedUsers.includes(CURRENT_USER)) {
+                alert(`🚨 권한 거부: 시민님은 현재 [${key}] 모임의 참여자가 아닙니다!`);
                 return;
             }
 
             let bSrc = document.getElementById('view-before').src;
             let aSrc = document.getElementById('view-after').src;
 
-            if(!bSrc || !aSrc || bSrc.includes('window') || aSrc.includes('window')) {
-                alert("활동 전(Before)과 후(After) 사진 파일을 업로드 장치에 모두 할당해 주세요.");
+            if(!bSrc || !aSrc || bSrc.startsWith('window') || aSrc.startsWith('window')) {
+                alert("활동 전(Before)과 후(After) 사진 파일을 모두 업로드해 주세요.");
                 return;
             }
 
             let isBonus = document.getElementById('cert-bonus').checked ? "제출됨(가산점)" : "미제출";
 
-            g.certs.push({
-                id: Date.now(),
+            db.ref('certs/' + key).push({
                 user: CURRENT_USER,
                 before: bSrc,
                 after: aSrc,
                 bonus: isBonus,
-                status: "승인대기" // 마스터의 수동 심사를 대기함
+                status: "승인대기"
+            }).then(() => {
+                alert("🎉 파일 데이터 검증 기반의 정화 보고서가 제출되었습니다!\n총 책임 관리자의 최종 심사 승인 후 포인트가 지급됩니다.");
+                document.getElementById('view-before').removeAttribute('src'); document.getElementById('view-before').style.display='none';
+                document.getElementById('view-after').removeAttribute('src'); document.getElementById('view-after').style.display='none';
+                document.getElementById('txt-b').style.display='block'; document.getElementById('txt-a').style.display='block';
+                document.getElementById('file-before').value = ""; document.getElementById('file-after').value = "";
             });
-
-            alert("🎉 파일 데이터 검증 기반의 정화 보고서가 제출되었습니다!\n총 책임 관리자의 최종 심사 승인 후 포인트가 지급됩니다.");
-            
-            // 리셋 초기화
-            document.getElementById('view-before').removeAttribute('src'); document.getElementById('view-before').style.display='none';
-            document.getElementById('view-after').removeAttribute('src'); document.getElementById('view-after').style.display='none';
-            document.getElementById('txt-b').style.display='block'; document.getElementById('txt-a').style.display='block';
-            document.getElementById('file-before').value = ""; document.getElementById('file-after').value = "";
-            
-            renderCertBoard();
         }
 
+        // 인증 보드 그리개
         function renderCertBoard() {
             let html = "";
-            let items = [];
-            for(let gName in GROUPS_DATA) {
-                GROUPS_DATA[gName].certs.forEach(c => {
-                    items.push({gName: gName, cert: c});
-                });
-            }
+            db.ref('certs').once('value', snapshot => {
+                window.CERTS_CACHE = [];
+                snapshot.forEach(groupChild => {
+                    let gName = groupChild.key;
+                    groupChild.forEach(certChild => {
+                        let c = certChild.val();
+                        c.gName = gName;
+                        c.id = certChild.key;
+                        window.CERTS_CACHE.push(c);
 
-            items.forEach((item, index) => {
-                let c = item.cert;
-                let badgeClass = c.status === '승인대기' ? 'status-wait' : 'status-approve';
-                html += `<div class="feed-item" onclick="viewMonitorDetail('${item.gName}', ${c.id})">
-                    <span class="feed-status ${badgeClass}">${c.status}</span>
-                    <strong>👤 ${c.user} 활동가</strong><br>
-                    <span style="font-size:12px; color:#555;">모임: ${item.gName}</span>
-                </div>`;
+                        let badgeClass = c.status === '승인대기' ? 'status-wait' : 'status-approve';
+                        html += `<div class="feed-item" onclick="viewMonitorDetail('${window.CERTS_CACHE.length - 1}')">
+                            <span class="feed-status ${badgeClass}">${c.status}</span>
+                            <strong>👤 ${c.user} 활동가</strong><br>
+                            <span style="font-size:12px; color:#555;">모임: ${gName}</span>
+                        </div>`;
+                    });
+                });
+                document.getElementById('cert-feed-container').innerHTML = html;
             });
-            document.getElementById('cert-feed-container').innerHTML = html;
         }
 
-        // 피드 확인 및 최고 권한자 실시간 포인트 승인 로직 (피드백 8번)
-        function viewMonitorDetail(gName, certId) {
-            let g = GROUPS_DATA[gName];
-            let c = g.certs.find(x => x.id === certId);
+        // 상세 모니터 연동 및 관리자 포인트 지급 승인
+        function viewMonitorDetail(cacheIdx) {
+            let c = window.CERTS_CACHE[cacheIdx];
             if(!c) return;
 
-            SELECTED_FEED_REF = { gName: gName, cert: c };
-
             document.getElementById('v-title').innerText = `📌 ${c.user}님의 보고서`;
-            document.getElementById('v-info').innerText = `모임: ${gName}\n단체가산점: ${c.bonus}\n현재 상태: ${c.status}`;
+            document.getElementById('v-info').innerText = `모임: ${c.gName}\n단체가산점: ${c.bonus}\n현재 상태: ${c.status}`;
             
             let mb = document.getElementById('monitor-before');
             let ma = document.getElementById('monitor-after');
-            
             mb.src = c.before; mb.style.display = "block";
             ma.src = c.after; ma.style.display = "block";
 
-            // 관리자 모드일 경우 승인 단추 상영 제어 (피드백 8번 핵심)
             if(IS_ADMIN && c.status === "승인대기") {
                 document.getElementById('admin-action-zone').style.display = "block";
                 document.getElementById('btn-admin-approve').onclick = function() {
-                    c.status = "승인완료";
-                    alert(`✅ [심사 승인 완료]\n${c.user} 시민님에게 100 마일리지를 원격 계좌로 입금 배정했습니다.`);
-                    document.getElementById('admin-action-zone').style.display = "none";
-                    viewMonitorDetail(gName, certId);
-                    renderCertBoard();
+                    // 1. 상태 승인완료 변경
+                    db.ref(`certs/${c.gName}/${c.id}/status`).set("승인완료").then(() => {
+                        // 2. 유저 포인트 100 마일리지 적립 후 알림
+                        db.ref(`users/${c.user}/points`).once('value', snap => {
+                            let pts = snap.val() || 0;
+                            db.ref(`users/${c.user}/points`).set(pts + 100);
+                        });
+                        alert(`✅ [심사 승인 완료]\n${c.user} 시민님에게 100 마일리지를 배정했습니다.`);
+                        document.getElementById('admin-action-zone').style.display = "none";
+                        renderCertBoard();
+                    });
                 };
             } else {
                 document.getElementById('admin-action-zone').style.display = "none";
             }
         }
 
-        // [부가 기능] 실시간 독립 소통창 모달 엔진
+        // 실시간 타이핑 오토 필터링 서치
+        function handleLiveSearch() {
+            let query = document.getElementById('cert-search').value.toLowerCase().trim();
+            let select = document.getElementById('cert-group-select');
+            select.innerHTML = "";
+            
+            for(let key in window.GROUPS_CACHE) {
+                if(key.toLowerCase().includes(query)) {
+                    let opt = document.createElement('option');
+                    opt.value = key; opt.innerText = key;
+                    select.appendChild(opt);
+                }
+            }
+        }
+
+        // [소통방 전용 리스너]
         function openChatModal(key) {
-            let g = GROUPS_DATA[key];
-            if(!g.joined_users.includes(CURRENT_USER)) { alert("해당 작전 모임 참여자만 소통방 입장이 보장됩니다."); return; }
+            let g = window.GROUPS_CACHE[key];
+            let joinedUsers = g.members ? Object.keys(g.members) : [];
+            if(!joinedUsers.includes(CURRENT_USER)) { alert("해당 작전 모임 참여자만 소통방 입장이 보장됩니다."); return; }
+            
             ACTIVE_CHAT_KEY = key;
             document.getElementById('chat-room-title').innerText = `💬 [${key}] 실시간 소통방`;
             document.getElementById('chat-modal').style.display = "flex";
-            updateChatLogs();
+            
+            db.ref(`chats/${key}`).off();
+            db.ref(`chats/${key}`).on('value', snap => {
+                let area = document.getElementById('chat-logs-area');
+                area.innerHTML = "";
+                snap.forEach(child => {
+                    let d = child.val();
+                    if (d.user) {
+                        area.innerHTML += `<div><strong>${d.user}</strong>: ${d.msg}</div>`;
+                    } else {
+                        area.innerHTML += `<div>${d.msg}</div>`;
+                    }
+                });
+                area.scrollTop = area.scrollHeight;
+            });
         }
+        
         function closeChatModal() { document.getElementById('chat-modal').style.display = "none"; }
-        function updateChatLogs() {
-            let logs = GROUPS_DATA[ACTIVE_CHAT_KEY].chat_history;
-            let area = document.getElementById('chat-logs-area');
-            area.innerHTML = logs.map(l => `<div>${l}</div>`).join('');
-            area.scrollTop = area.scrollHeight;
-        }
+        
         function sendChatMessage() {
             let input = document.getElementById('chat-input');
             let txt = input.value.trim();
             if(!txt) return;
-            GROUPS_DATA[ACTIVE_CHAT_KEY].chat_history.push(`<strong>${CURRENT_USER}</strong>: ${txt}`);
-            input.value = "";
-            updateChatLogs();
+            db.ref(`chats/${ACTIVE_CHAT_KEY}`).push({ user: CURRENT_USER, msg: txt }).then(() => {
+                input.value = "";
+            });
         }
     </script>
 </body>
