@@ -3,413 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>클린창원 - 시민 참여형 플로깅 플랫폼</title>
+    <title>클린창원 - 시민 참여형 신고 플랫폼</title>
     <style>
-        /* 기본 스타일 및 색상 테마 정의 */
+        /* 정원 학생의 기존 예쁜 초록색 디자인 테마 그대로 유지 */
         :root {
-            --color-primary: #2e7d32;
-            --color-secondary: #81c784;
-            --color-accent: #e3f2fd;
-            --color-bg: #f9fbf9;
-            --color-dark: #263238;
+            --color-primary: #388e3c;
+            --color-bg: #e8f5e9;
         }
-        body { font-family: '맑은 고딕', sans-serif; margin: 0; padding: 0; background-color: var(--color-bg); color: #333; }
+        body {
+            font-family: '맑은 고딕', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--color-bg);
+            color: #333;
+        }
+        header {
+            background-color: var(--color-primary);
+            color: white;
+            text-align: center;
+            padding: 30px 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .card {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+        }
+        .card h2 {
+            color: var(--color-primary);
+            margin-top: 0;
+            border-bottom: 2px solid var(--color-bg);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .btn-submit {
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: #2e7d32;
+        }
         
-        /* 헤더 & 네비게이션 탭 */
-        header { background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-        .nav-tabs { display: flex; justify-content: center; list-style: none; margin: 0; padding: 10px 0; background: var(--color-accent); }
-        .tab-btn { background: none; border: none; padding: 10px 20px; font-weight: bold; font-size: 14px; color: #333; cursor: pointer; border-radius: 5px; margin: 0 5px; transition: 0.3s; }
-        .tab-btn.active { background-color: var(--color-primary); color: white; }
-        
-        /* 컨텐츠 영역 */
-        .container { max-width: 800px; margin: 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); min-height: 500px; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        
-        /* 공통 스타일 */
-        h1 { color: var(--color-primary); text-align: center; margin-top: 0; }
-        .sub-title { text-align: center; color: #555; font-style: italic; margin-bottom: 25px; }
-        .section-box { border: 1px solid #ddd; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-        .danger-box { border: 1px solid #ffebee; background-color: #ffebee; color: #c62828; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-        .badge-container { display: flex; gap: 10px; justify-content: center; margin: 15px 0; }
-        .badge { background: #ffebee; color: #c62828; font-weight: bold; padding: 8px 15px; border: 1px solid #c62828; border-radius: 4px; }
-        .flow-box { background: var(--color-accent); color: #1565c0; font-weight: bold; text-align: center; padding: 12px; border: 1px ridge #1565c0; border-radius: 5px; }
-        
-        /* 폼 요소 스타일 */
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
-        .btn-submit { background-color: var(--color-primary); color: white; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 10px; }
-        .btn-submit:hover { opacity: 0.9; }
-        
-        /* 가상 지도 버튼 */
-        .map-frame { background-color: var(--color-accent); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-        .map-title { font-weight: bold; margin-bottom: 10px; display: block; }
-        .map-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-        .map-btn { background: white; border: 1px solid var(--color-primary); color: var(--color-primary); padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .map-btn:hover { background: var(--color-primary); color: white; }
-        
-        /* 실시간 리스트/카드 스타일 */
-        .list-box { background: #f5f5f5; border: 1px solid #ddd; height: 180px; overflow-y: auto; padding: 10px; border-radius: 4px; font-size: 14px; }
-        .list-item { padding: 8px 0; border-bottom: 1px dashed #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .card-list { display: flex; flex-direction: column; gap: 15px; }
-        .meeting-card { border: 2px groove #eee; padding: 15px; border-radius: 6px; background: white; position: relative; }
-        .meeting-title { font-size: 18px; font-weight: bold; color: var(--color-primary); margin: 0 0 5px 0; }
-        .meeting-info { color: #666; margin: 5px 0; font-size: 14px; }
-        .meeting-count { font-weight: bold; margin-top: 8px; font-size: 14px; }
-        .count-num { color: blue; }
-        .btn-join { position: absolute; right: 15px; bottom: 15px; background: var(--color-primary); color: white; border: none; padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .btn-join:disabled { background: #bbb; cursor: not-allowed; }
-        
-        /* 인증 피드백 */
-        .file-status { margin-left: 10px; color: gray; font-size: 14px; font-weight: bold; }
-        .file-status.selected { color: green; }
-        .file-label-btn { display: inline-block; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; color: white; margin-bottom: 10px; }
-        
-        /* 푸터 */
-        footer { background-color: var(--color-dark); color: #cfd8dc; text-align: center; padding: 15px 0; font-size: 14px; margin-top: 40px; }
-        footer .quote { color: var(--color-secondary); font-style: italic; margin-top: 5px; }
+        /* 실시간 리스트를 위한 깔끔한 아이템 디자인 */
+        .report-item {
+            padding: 15px;
+            border-bottom: 1px dashed #ccc;
+            line-height: 1.5;
+        }
+        .report-item:last-child {
+            border-bottom: none;
+        }
+        .report-item .loc-title {
+            font-weight: bold;
+            color: var(--color-primary);
+            font-size: 15px;
+        }
+        .report-item .badge {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2e7d32;
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .report-item .desc-text {
+            margin-top: 5px;
+            color: #666;
+            font-size: 13px;
+        }
+        .empty-msg {
+            color: #888;
+            text-align: center;
+            padding: 40px 10px;
+            line-height: 1.6;
+        }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
 <header>
-    <ul class="nav-tabs">
-        <li><button class="tab-btn active" onclick="openTab('tab1', this)">홈 / 문제 소개</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab2', this)">신고하기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab3', this)">모임 만들기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab4', this)">참여하기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab5', this)">인증 및 보상</button></li>
-    </ul>
+    <h1>📍 클린창원</h1>
+    <p>우리 동네 쓰레기 방치 및 무단투기 시민 참여형 신고 플랫폼</p>
 </header>
 
 <div class="container">
-    <div id="tab1" class="tab-content active">
-        <h1>🌿 시민이 함께 만드는 깨끗한 창원</h1>
-        <div class="sub-title">쓰레기 문제를 발견하고, 플로깅 모임을 만들어 함께 해결하는 플랫폼</div>
-        <hr style="border: 0; height: 1px; background: #ddd; margin: 20px 0;">
+    <div class="card">
+        <h2>쓰레기 방치 신고하기</h2>
         
-        <div style="text-align: center;">
-            <div style="color: #c62828; font-size: 18px; font-weight: bold; margin-bottom: 10px;">[창원시 쓰레기 방치 문제]</div>
-            <p style="line-height: 1.6;">골목길, 공원, 하천, 학교 인근에 담배꽁초, 일회용 컵 등이 방치되어<br>악취, 미관 저하, 수질 오염 등의 사회적 문제가 발생하고 있습니다.</p>
-        </div>
-
-        <div class="badge-container">
-            <div class="badge">⚠️ 미관 저하</div>
-            <div class="badge">🤢 악취 발생</div>
-            <div class="badge">💧 수질 오염</div>
-            <div class="badge">🔄 무단투기 반복</div>
-        </div>
-
-        <div style="margin-top: 30px;">
-            <div style="text-align: center; font-weight: bold; margin-bottom: 10px; color: var(--color-primary);">[서비스 작동 방식]</div>
-            <div class="flow-box">🚨 신고 (지도 선택) ➡️ 📅 모임 개설 (실시간 연동) ➡️ 🏃‍♂️ 참여 ➡️ ✅ 사진 인증 및 보상</div>
-        </div>
-    </div>
-
-    <div id="tab2" class="tab-content">
-        <h1>🚨 더러운 지역 신고하기</h1>
-        
-        <div class="map-frame">
-            <span class="map-title">🗺️ 창원시 가상 지도 (아래 구역 버튼을 클릭하면 지역이 선택됩니다)</span>
-            <div class="map-btns">
-                <button class="map-btn" onclick="selectRegion('의창구')">의창구</button>
-                <button class="map-btn" onclick="selectRegion('성산구')">성산구</button>
-                <button class="map-btn" onclick="selectRegion('마산회원구')">마산회원구</button>
-                <button class="map-btn" onclick="selectRegion('마산합포구')">마산합포구</button>
-                <button class="map-btn" onclick="selectRegion('진해구')">진해구</button>
-            </div>
-        </div>
-
         <div class="form-group">
-            <label>선택된 지역구:</label>
-            <select id="combo_region">
-                <option value="">위 지도 버튼을 누르거나 선택하세요</option>
-                <option value="의창구">의창구</option>
-                <option value="성산구">성산구</option>
-                <option value="마산회원구">마산회원구</option>
-                <option value="마산합포구">마산합포구</option>
-                <option value="진해구">진해구</option>
+            <label>위치 (창원시 구/동 입력)</label>
+            <input type="text" id="entry_location" placeholder="예: 성산구 중앙동 한서병원 앞">
+        </div>
+        
+        <div class="form-group">
+            <label>쓰레기 종류</label>
+            <select id="combo_trash_type">
+                <option value="">-- 선택해 주세요 --</option>
+                <option value="담배꽁초">담배꽁초</option>
+                <option value="일회용 플라스틱 컵">일회용 플라스틱 컵</option>
+                <option value="대형 폐기물 방치">대형 폐기물 방치</option>
+                <option value="음식물 쓰레기">음식물 쓰레기</option>
+                <option value="기타 쓰레기">기타 쓰레기</option>
             </select>
         </div>
+        
         <div class="form-group">
-            <label>상세 위치 입력:</label>
-            <input type="text" id="entry_loc" placeholder="예: 창원천 산책로 다리 밑">
+            <label>상세 설명</label>
+            <textarea id="entry_description" rows="4" placeholder="상황을 자세히 적어주시면 빠른 처리에 도움이 됩니다."></textarea>
         </div>
-        <div class="form-group">
-            <label>쓰레기 종류:</label>
-            <input type="text" id="entry_type" placeholder="예: 플라스틱 컵, 담배꽁초">
-        </div>
-        <button class="btn-submit" onclick="submitReport()">🚨 쓰레기 지역 신고하기</button>
-
-        <div style="margin-top: 30px;">
-            <div style="font-weight: bold; margin-bottom: 8px;">📋 실시간 시민 신고 내역 목록 (실시간 추가됨)</div>
-            <div id="report_text_box" class="list-box"></div>
-        </div>
+        
+        <button class="btn-submit" onclick="submitReport()">신고 접수하기</button>
     </div>
 
-    <div id="tab3" class="tab-content">
-        <h1>📅 새로운 플로깅 모임 개설</h1>
-        <div class="form-group">
-            <label>모임 이름:</label>
-            <input type="text" id="entry_gname">
+    <div class="card">
+        <h2>실시간 접수 현황</h2>
+        <div id="realtime_list_box">
+            <div class="empty-msg">데이터를 불러오는 중입니다...</div>
         </div>
-        <div class="form-group">
-            <label>활동 장소 명시:</label>
-            <input type="text" id="entry_gloc">
-        </div>
-        <div class="form-group">
-            <label>모집 인원 (최대 50명 제한):</label>
-            <input type="number" id="entry_gmax" placeholder="숫자만 입력">
-        </div>
-        <div class="form-group">
-            <label>준비물 및 모임 설명:</label>
-            <textarea id="entry_gdesc" rows="4"></textarea>
-        </div>
-        <button class="btn-submit" onclick="createGroup()">📅 플로깅 모임 개설 및 등록</button>
-    </div>
-
-    <div id="tab4" class="tab-content">
-        <h1>🏃‍♂️ 현재 참여 가능한 플로깅 모임 리스트</h1>
-        <div id="scroll_frame" class="card-list">
-            </div>
-    </div>
-
-    <div id="tab5" class="tab-content">
-        <h1>✅ 정화 완료 인증 및 파일 첨부</h1>
-        <div style="text-align: center; margin: 20px 0;">
-            <div class="form-group">
-                <label for="file_before" class="file-label-btn" style="background-color:#ffebee; color:#c62828;">📸 1. Before 사진 첨부 (활동 전)</label>
-                <input type="file" id="file_before" accept="image/*" style="display:none;" onchange="handleFile('before')">
-                <span id="lbl_b_status" class="file-status">선택된 파일 없음</span>
-            </div>
-            <div class="form-group">
-                <label for="file_after" class="file-label-btn" style="background-color:#e8f5e9; color:#2e7d32;">✨ 2. After 사진 첨부 (활동 후)</label>
-                <input type="file" id="file_after" accept="image/*" style="display:none;" onchange="handleFile('after')">
-                <span id="lbl_a_status" class="file-status">선택된 파일 없음</span>
-            </div>
-        </div>
-
-        <div style="text-align: center; margin: 20px 0;">
-            <label style="font-size: 15px; cursor: pointer;">
-                <input type="checkbox" id="chk_group_photo"> 🧑‍🤝‍🧑 인원들과 단체 사진을 함께 제출합니다 (추가 인증 가산점)
-            </label>
-        </div>
-
-        <button class="btn-submit" style="background-color: #1976d2;" onclick="submitCert()">🛡️ 정화 활동 최종 인증하기</button>
     </div>
 </div>
 
-<footer>
-    <div>창원시 지역사회 문제 해결 프로젝트 | </div>
-    <div class="quote">"환경을 발견하고, 함께 행동하고, 깨끗한 지역을 만든다."</div>
-</footer>
-
 <script>
-    // --- 💾 [수정] 브라우저 저장소(LocalStorage)에서 데이터 가져오기 없으면 초기 데이터 사용 ---
-    let reportedList = JSON.parse(localStorage.getItem('plogging_reports')) || [
-        {region: "성산구", loc: "창원천 산책로 다리 밑", type: "플라스틱 컵, 담배꽁초"},
-        {region: "의창구", loc: "도계초등학교 앞 버스정류장", type: "일회용기, 비닐"}
-    ];
+    // 🔑 화면에서 올려준 정원의 hello-jiyeok 파이어베이스 실제 정보 연동 완료!
+    const firebaseConfig = {
+        apiKey: "AIzaSyAfLlENivhQipjRVGLYoezBl18osHBL3Yc",
+        authDomain: "hello-jiyeok.firebaseapp.com",
+        databaseURL: "https://hello-jiyeok-default-rtdb.firebaseio.com/", // 데이터베이스 실시간 연동 주소
+        projectId: "hello-jiyeok",
+        storageBucket: "hello-jiyeok.firebasestorage.app",
+        messagingSenderId: "586616289104",
+        appId: "1:586616289104:web:d5d12c0882b96777f85e55"
+    };
 
-    let groupList = JSON.parse(localStorage.getItem('plogging_groups')) || [
-        {id: "curr_1", name: "창원천 산책로 플로깅", loc: "창원천 산책로 입구", desc: "집게, 면장갑", current: 45, maxP: 50, disabled: false},
-        {id: "curr_2", name: "학교 앞 버스정류장 정화 활동", loc: "창원고등학교 앞 정류장", desc: "쓰레기봉투, 생수", current: 12, maxP: 15, disabled: false}
-    ];
+    // 파이어베이스 시스템 시작
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
 
-    // --- 탭 전환 기능 ---
-    function openTab(tabId, btn) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        btn.classList.add('active');
-    }
-
-    // --- 탭 2: 지도 및 신고 기능 ---
-    function selectRegion(regionName) {
-        document.getElementById('combo_region').value = regionName;
-        alert(`📍 지도를 통해 [${regionName}]이 선택되었습니다. 상세 위치를 입력해주세요.`);
-    }
-
-    function refreshReportList() {
-        const box = document.getElementById('report_text_box');
-        box.innerHTML = '';
-        reportedList.forEach((r, idx) => {
-            box.innerHTML += `
-                <div class="list-item">
-                    <span>[${idx + 1}] 지역구: ${escapeHtml(r.region)} | 상세위치: ${escapeHtml(r.loc)} | 주요쓰레기: ${escapeHtml(r.type)}</span>
-                    <button onclick="deleteReport(${idx})" style="background:#ff4d4d; color:white; border:none; padding:3px 7px; border-radius:3px; cursor:pointer; font-size:11px; margin-left:10px;">삭제</button>
-                </div>`;
-        });
-    }
-
+    // 🚀 [기능 1] 신고 접수 버튼을 누르면 구글 공용 창고(DB)에 데이터 즉시 전송
     function submitReport() {
-        const reg = document.getElementById('combo_region').value;
-        const loc = document.getElementById('entry_loc').value;
-        const typ = document.getElementById('entry_type').value || "기타 쓰레기";
+        const loc = document.getElementById('entry_location').value.trim();
+        const type = document.getElementById('combo_trash_type').value;
+        const desc = document.getElementById('entry_description').value.trim();
 
-        if(!reg || !loc) {
-            alert("경고: 지역 선택과 상세 위치 입력은 필수입니다!");
+        if(!loc) {
+            alert("❌ 위치를 입력해 주세요!");
+            return;
+        }
+        if(!type) {
+            alert("❌ 쓰레기 종류를 선택해 주세요!");
             return;
         }
 
-        reportedList.push({region: reg, loc: loc, type: typ});
-        
-        // 💾 [저장추가] 로컬스토리지에 실시간 신고 데이터 영구 저장
-        localStorage.setItem('plogging_reports', JSON.stringify(reportedList));
-        
-        refreshReportList();
-        alert("🎉 신고가 접수되어 실시간 내역 창에 추가되었습니다!");
-        
-        document.getElementById('entry_loc').value = '';
-        document.getElementById('entry_type').value = '';
-    }
-
-    // 💾 [기능추가] 잘못 쓴 신고글 지우는 기능
-    function deleteReport(index) {
-        if(confirm("해당 신고 내역을 삭제하시겠습니까?")) {
-            reportedList.splice(index, 1);
-            localStorage.setItem('plogging_reports', JSON.stringify(reportedList));
-            refreshReportList();
-        }
-    }
-
-    // --- 탭 3 & 4: 모임 개설 및 드로잉 기능 ---
-    function refreshGroupList() {
-        const scrollFrame = document.getElementById('scroll_frame');
-        scrollFrame.innerHTML = '';
-        
-        groupList.forEach((g) => {
-            const card = document.createElement('div');
-            card.className = 'meeting-card';
-            card.innerHTML = `
-                <div class="meeting-title">${g.id.includes('curr') ? '' : '🌿 '}${escapeHtml(g.name)}</div>
-                <div class="meeting-info">장소: ${escapeHtml(g.loc)} | 준비물 및 설명: ${escapeHtml(g.desc)}</div>
-                <div class="meeting-count">참여 인원: <span class="count-num" id="${g.id}">${g.current}</span> / ${g.maxP} 명</div>
-                <button class="btn-join" ${g.disabled ? 'disabled' : ''} onclick="joinGroup('${g.id}', ${g.maxP}, this)">
-                    ${g.disabled ? '모집 마감' : '참여하기'}
-                </button>
-            `;
-            scrollFrame.appendChild(card);
-        });
-    }
-
-    function createGroup() {
-        const name = document.getElementById('entry_gname').value;
-        const loc = document.getElementById('entry_gloc').value;
-        const maxP = parseInt(document.getElementById('entry_gmax').value);
-        const desc = document.getElementById('entry_gdesc').value;
-
-        if(!name || !loc || isNaN(maxP)) {
-            alert("오류: 모든 빈칸을 채우고 모집 인원은 숫자로 적어주세요.");
-            return;
-        }
-        if(maxP > 50) {
-            alert("경고: 한 모임의 최대 인원은 50명입니다!");
-            return;
-        }
-
-        const newId = "group_" + Date.now(); // 고유 ID 생성
-        groupList.push({
-            id: newId,
-            name: name,
-            loc: loc,
-            desc: desc,
-            current: 1,
-            maxP: maxP,
-            disabled: false
+        // 공용 서버 창고('reports' 공간)에 새 데이터 쏘아 보내기
+        database.ref('reports').push({
+            location: loc,
+            trashType: type,
+            description: desc || "상세 설명 없음"
         });
 
-        // 💾 [저장추가] 로컬스토리지에 모임 데이터 영구 저장
-        localStorage.setItem('plogging_groups', JSON.stringify(groupList));
+        alert("🎉 공용 서버로 실시간 신고 데이터가 안전하게 전송되었습니다!");
         
-        refreshGroupList();
+        // 입력창 깔끔하게 비워주기
+        document.getElementById('entry_location').value = '';
+        document.getElementById('combo_trash_type').value = '';
+        document.getElementById('entry_description').value = '';
+    }
 
-        alert(`📅 [${name}] 모임이 생성되었습니다!\n'참여하기' 탭으로 즉시 전송 및 반영되었습니다.`);
+    // 🔄 [기능 2] 공용 창고에 데이터가 추가되거나 삭제되면, 친구들 화면까지 실시간 동기화
+    database.ref('reports').on('value', (snapshot) => {
+        const listBox = document.getElementById('realtime_list_box');
+        listBox.innerHTML = ''; // 기존 리스트 화면을 깨끗이 지우고 새로 그리기
         
-        // 입력 폼 리셋
-        document.getElementById('entry_gname').value = '';
-        document.getElementById('entry_gloc').value = '';
-        document.getElementById('entry_gmax').value = '';
-        document.getElementById('entry_gdesc').value = '';
-
-        // 참여하기 탭으로 이동
-        openTab('tab4', document.querySelectorAll('.tab-btn')[3]);
-    }
-
-    // --- 탭 4: 참여하기 인원 증가 로직 ---
-    function joinGroup(labelId, maxVal, btn) {
-        // 배열에서 해당하는 모임 인덱스 찾기
-        const gIdx = groupList.findIndex(g => g.id === labelId);
-        if(gIdx === -1) return;
-
-        if(groupList[gIdx].current >= maxVal) {
-            alert("모집이 마감되었습니다.");
-            return;
-        }
-
-        groupList[gIdx].current++;
-        alert("🏃‍♂️ 플로깅 모임 참여 신청 완료! 현장에서 만나요.");
-
-        if(groupList[gIdx].current === maxVal) {
-            groupList[gIdx].disabled = true;
-        }
-
-        // 💾 [저장추가] 숫자가 올랐거나 마감된 상태 업데이트 저장
-        localStorage.setItem('plogging_groups', JSON.stringify(groupList));
-        refreshGroupList();
-    }
-
-    // --- 탭 5: 파일 핸들링 및 최종 인증 ---
-    function handleFile(type) {
-        const input = document.getElementById(`file_${type}`);
-        const status = document.getElementById(`lbl_${type}_status`);
-        if(input.files.length > 0) {
-            status.innerText = `📁 선택됨: ${input.files[0].name}`;
-            status.classList.add('selected');
-        }
-    }
-
-    function submitCert() {
-        const bStatus = document.getElementById('lbl_b_status').innerText;
-        const aStatus = document.getElementById('lbl_a_status').innerText;
-        const groupPhoto = document.getElementById('chk_group_photo').checked;
-
-        if(bStatus.includes("없음") || aStatus.includes("없음")) {
-            alert("사진 누락: 활동 전(Before)과 활동 후(After) 사진을 모두 첨부해야 인증이 가능합니다!");
-            return;
-        }
-
-        let msg = "✅ 정화 활동이 성공적으로 인증되었습니다!\n";
-        if(groupPhoto) {
-            msg += "💡 단체 사진 가산 포인트가 함께 접수되었습니다.\n";
-        }
-        msg += "관리자 최종 매칭 검토 후 마일리지가 지급됩니다.";
+        const data = snapshot.val();
         
-        alert(msg);
+        if (data) {
+            // 서버에 데이터가 있으면 역순(최신 글이 위로 오게)으로 출력
+            Object.keys(data).reverse().forEach(key => {
+                const item = data[key];
+                
+                const reportItem = document.createElement('div');
+                reportItem.className = 'report-item';
+                reportItem.innerHTML = `
+                    <div>
+                        <span class="loc-title">📍 ${escapeHtml(item.location)}</span>
+                        <span class="badge">${escapeHtml(item.trashType)}</span>
+                    </div>
+                    <div class="desc-text">${escapeHtml(item.description)}</div>
+                `;
+                listBox.appendChild(reportItem);
+            });
+        } else {
+            // 서버 창고가 텅 비어있을 때 뜨는 메시지
+            listBox.innerHTML = `
+                <div class="empty-msg">
+                    현재 접수된 신고 내역이 없습니다. <br>우리 동네를 깨끗하게 만들어 주세요!
+                </div>`;
+        }
+    });
 
-        // 초기화
-        document.getElementById('lbl_b_status').innerText = "선택된 파일 없음";
-        document.getElementById('lbl_a_status').innerText = "선택된 파일 없음";
-        document.getElementById('lbl_b_status').classList.remove('selected');
-        document.getElementById('lbl_a_status').classList.remove('selected');
-        document.getElementById('file_before').value = '';
-        document.getElementById('file_after').value = '';
-        document.getElementById('chk_group_photo').checked = false;
-    }
-
-    // 보안 및 텍스트 출력을 위한 XSS 방지 처리 함수
+    // 보안을 위한 텍스트 치환 함수 (HTML 태그 공격 방지)
     function escapeHtml(text) {
         if (!text) return '';
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
     }
-
-    // 시작 시 저장소에 보관된 목록들을 화면에 즉시 로딩
-    window.onload = function() {
-        refreshReportList();
-        refreshGroupList();
-    };
 </script>
 </body>
 </html>
