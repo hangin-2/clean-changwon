@@ -1,296 +1,458 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>클린창원 - 시민 참여형 쓰레기 신고 플랫폼</title>
-    <style>
-        :root {
-            --primary-color: #2e7d32;
-            --secondary-color: #4caf50;
-            --background-color: #f1f8e9;
-            --text-color: #333;
-        }
+import tkinter as tk
+from tkinter import messagebox, ttk, filedialog
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--background-color);
-            color: var(--text-color);
-        }
+# ==========================================
+# 메인 윈도우 설정
+# ==========================================
+root = tk.Tk()
+root.title("클린창원 - 시민 참여형 플로깅 플랫폼")
+root.geometry("820x920")
+root.configure(bg="#ffffff")
 
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+# --- 색상 테마 정의 ---
+COLOR_PRIMARY = "#2e7d32"   
+COLOR_SECONDARY = "#81c784" 
+COLOR_ACCENT = "#e3f2fd"    
+COLOR_BG = "#f9fbf9"        
 
-        header h1 {
-            margin: 0;
-            font-size: 2rem;
-        }
+# --- 실시간 데이터 저장소 ---
+REPORTED_LIST = [
+    {"region": "성산구", "loc": "창원천 산책로 다리 밑", "type": "플라스틱 컵, 담배꽁초"},
+    {"region": "의창구", "loc": "도계초등학교 앞 버스정류장", "type": "일회용기, 비닐"}
+]
 
-        header p {
-            margin: 0.5rem 0 0 0;
-            font-size: 1rem;
-            opacity: 0.9;
-        }
+# 모임별 실시간 상태 및 채팅 내역을 저장하는 가상 데이터베이스 구조 (핵심 고도화)
+GROUPS_DATA = {
+    "창원천 산책로 플로깅": {
+        "joined": False,
+        "current_p": 45,
+        "max_p": 50,
+        "chat_history": [
+            "[시스템] 모임방이 개설되었습니다. 자유롭게 대화를 시작하세요!\n",
+            "방장: 안녕하세요! 다들 장갑이랑 집게 꼭 챙겨와주세요~\n"
+        ]
+    }
+}
 
-        main {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-        }
+# ==========================================
+# 탭(메뉴) 기능 설정
+# ==========================================
+notebook = ttk.Notebook(root)
+notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
-        @media (max-width: 768px) {
-            main {
-                grid-template-columns: 1fr;
-            }
-        }
+style = ttk.Style()
+style.theme_use('clam')
+style.configure("TNotebook.Tab", background="#e3f2fd", foreground="#333333", font=("맑은 고딕", 10, "bold"))
+style.map("TNotebook.Tab", background=[("selected", "#2e7d32")], foreground=[("selected", "#ffffff")])
 
-        .card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
+tab1 = tk.Frame(notebook, bg=COLOR_BG)
+tab2 = tk.Frame(notebook, bg="#ffffff")
+tab3 = tk.Frame(notebook, bg="#ffffff")
+tab4 = tk.Frame(notebook, bg=COLOR_BG)
+tab5 = tk.Frame(notebook, bg="#ffffff")
 
-        .card h2 {
-            margin-top: 0;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--background-color);
-            padding-bottom: 0.5rem;
-        }
+notebook.add(tab1, text="홈 / 문제 소개")
+notebook.add(tab2, text="신고하기")
+notebook.add(tab3, text="모임 만들기")
+notebook.add(tab4, text="참여하기")
+notebook.add(tab5, text="인증 및 보상")
 
-        .form-group {
-            margin-bottom: 1.2rem;
-        }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
+# ==========================================
+# [공통 기능] 플로깅 참여 및 취소 토글 로직 (피드백 2, 3번 반영)
+# ==========================================
+def toggle_group_join(group_key, current_lbl, btn):
+    g_info = GROUPS_DATA[group_key]
+    
+    # 1. 이미 참여한 상태라면 -> '참여 취소(나가기)' 처리
+    if g_info["joined"]:
+        g_info["current_p"] -= 1
+        current_lbl["text"] = str(g_info["current_p"])
+        g_info["joined"] = False
+        
+        # 채팅 내역에 탈퇴 로그 남기기
+        g_info["chat_history"].append("[알림] 한 참여자가 모임을 나갔습니다.\n")
+        
+        messagebox.showinfo("참여 취소", f"🚶‍♂️ [{group_key}] 모임 참여를 취소했습니다.\n이제 해당 채팅방에서 글을 작성할 수 없습니다.")
+        btn.config(text="참여하기", bg=COLOR_PRIMARY, fg="white")
+        return
 
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 0.7rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
+    # 2. 참여하지 않은 상태라면 -> '참여 신청' 처리
+    if g_info["current_p"] >= g_info["max_p"]:
+        messagebox.showwarning("마감", "모집이 이미 마감되었습니다.")
+        return
+    
+    g_info["current_p"] += 1
+    current_lbl["text"] = str(g_info["current_p"])
+    g_info["joined"] = True
+    
+    # 채팅 내역에 가입 로그 남기기
+    g_info["chat_history"].append("[알림] 새로운 참여자가 입장했습니다!\n")
+    
+    messagebox.showinfo("참여 성공", f"🏃‍♂️ [{group_key}] 참여 완료!\n채팅 권한이 획득되었습니다. 우측 소통방을 열어보세요!")
+    btn.config(text="🏃‍♂️ 참여 취소하기", bg="#d32f2f", fg="white")
 
-        .form-group textarea {
-            resize: vertical;
-            height: 100px;
-        }
 
-        button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            transition: background 0.2s;
-            font-weight: bold;
-        }
+# ==========================================
+# [공통 기능] 데이터가 유지되고 권한 제어가 작동하는 채팅창 (피드백 2, 4번 반영)
+# ==========================================
+def open_chat_window(group_key):
+    g_info = GROUPS_DATA[group_key]
+    
+    chat_win = tk.Toplevel(root)
+    chat_win.title(f"💬 {group_key} - 실시간 소통방")
+    chat_win.geometry("420x520")
+    chat_win.configure(bg="#ffffff")
+    
+    tk.Label(chat_win, text=f"💬 {group_key} 대화방", font=("맑은 고딕", 11, "bold"), bg=COLOR_PRIMARY, fg="white", pady=8).pack(fill="x")
+    
+    # 권한 상태에 따른 안내 문구 상단 표시
+    if g_info["joined"]:
+        auth_text = "✅ 참여자 인증됨: 채팅 작성 가능"
+        auth_color = "#2e7d32"
+    else:
+        auth_text = "🔒 권한 제한: 모임에 참여한 사람만 채팅을 보낼 수 있습니다."
+        auth_color = "#c62828"
+        
+    lbl_auth = tk.Label(chat_win, text=auth_text, font=("맑은 고딕", 9, "bold"), fg=auth_color, bg=COLOR_ACCENT, pady=4)
+    lbl_auth.pack(fill="x")
+    
+    chat_box = tk.Text(chat_win, bg="#f5f5f5", font=("맑은 고딕", 10), state="normal", wrap="word")
+    chat_box.pack(fill="both", expand=True, padx=10, pady=5)
+    
+    # [데이터 보존 핵심] 기존에 저장되어 있던 이 모임의 대화 내역을 그대로 불러와서 출력함!
+    for msg in g_info["chat_history"]:
+        chat_box.insert(tk.END, msg)
+    chat_box.see(tk.END)
+    
+    input_frame = tk.Frame(chat_win, bg="#ffffff")
+    input_frame.pack(fill="x", padx=10, pady=10)
+    
+    msg_entry = tk.Entry(input_frame, font=("맑은 고딕", 10))
+    msg_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+    
+    def send_message():
+        text = msg_entry.get().strip()
+        if not text:
+            return
+        
+        # 실시간 메시지를 화면에 뿌리고 전역 데이터 딕셔너리(`GROUPS_DATA`)에 반영구 저장
+        formatted_msg = f"나: {text}\n"
+        chat_box.insert(tk.END, formatted_msg)
+        g_info["chat_history"].append(formatted_msg) # 내역 리스트에 누적 저장
+        
+        chat_box.see(tk.END)
+        msg_entry.delete(0, tk.END)
+        
+    send_btn = tk.Button(input_frame, text="전송", bg=COLOR_PRIMARY, fg="white", font=("맑은 고딕", 9, "bold"), command=send_message, width=8)
+    send_btn.pack(side="right")
+    
+    # [권한 제어 핵심 구현] 만약 참여하지 않은 사람이라면 입력창과 전송버튼을 비활성화(disabled)시킴
+    if not g_info["joined"]:
+        msg_entry.config(state="disabled")
+        send_btn.config(state="disabled", bg="#bbb")
+    else:
+        msg_entry.focus()
+        msg_entry.bind("<Return>", lambda event: send_message())
 
-        button:hover {
-            background-color: var(--secondary-color);
-        }
 
-        /* 신고 내역 스타일 */
-        .report-list {
-            max-height: 500px;
-            overflow-y: auto;
-        }
+# ==========================================
+# [탭 1] 홈 & 문제 소개
+# ==========================================
+tk.Label(tab1, text="🌿 시민이 함께 만드는 깨끗한 창원", font=("맑은 고딕", 18, "bold"), fg=COLOR_PRIMARY, bg=COLOR_BG).pack(pady=15)
+tk.Label(tab1, text="쓰레기 문제를 발견하고, 플로깅 모임을 만들어 함께 해결하는 플랫폼", font=("맑은 고딕", 10, "italic"), fg="#555555", bg=COLOR_BG).pack(pady=5)
 
-        .report-item {
-            background: #fafafa;
-            border-left: 4px solid var(--primary-color);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0 4px 4px 0;
-            position: relative;
-        }
+ttk.Separator(tab1, orient="horizontal").pack(fill="x", padx=20, pady=15)
 
-        .report-item strong {
-            display: block;
-            font-size: 1.1rem;
-            margin-bottom: 0.3rem;
-        }
+tk.Label(tab1, text="[창원시 쓰레기 방치 문제]", font=("맑은 고딕", 13, "bold"), fg="#c62828", bg=COLOR_BG).pack(pady=5)
+tk.Label(tab1, text="골목길, 공원, 하천, 학교 인근에 담배꽁초, 일회용 컵 등이 방치되어\n악취, 미관 저하, 수질 오염 등의 사회적 문제가 발생하고 있습니다.", font=("맑은 고딕", 10), bg=COLOR_BG).pack(pady=5)
 
-        .report-item .type-tag {
-            display: inline-block;
-            background: #e8f5e9;
-            color: var(--primary-color);
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.85rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
+card_frame = tk.Frame(tab1, bg=COLOR_BG)
+card_frame.pack(pady=10)
+problems = ["⚠️ 미관 저하", "🤢 악취 발생", "💧 수질 오염", "🔄 무단투기 반복"]
+for i, prob in enumerate(problems):
+    tk.Label(card_frame, text=prob, font=("맑은 고딕", 10, "bold"), bg="#ffebee", fg="#c62828", padx=15, pady=10, bd=1, relief="solid").grid(row=0, column=i, padx=5)
 
-        .report-item p {
-            margin: 0.5rem 0;
-            font-size: 0.95rem;
-            line-height: 1.4;
-        }
 
-        .report-item small {
-            color: #777;
-        }
+# ==========================================
+# [탭 2] 더러운 지역 신고하기 (더블클릭 연동 기능 구현)
+# ==========================================
+tk.Label(tab2, text="🚨 더러운 지역 신고하기", font=("맑은 고딕", 14, "bold"), fg=COLOR_PRIMARY, bg="#ffffff").pack(pady=10)
 
-        .delete-btn {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            background: #ff4d4d;
-            color: white;
-            border: none;
-            padding: 0.3rem 0.6rem;
-            font-size: 0.8rem;
-            border-radius: 4px;
-            cursor: pointer;
-            width: auto;
-        }
+map_label_frame = tk.LabelFrame(tab2, text="🗺️ 창원시 가상 지도 (아래 구역 버튼을 클릭하면 지역이 선택됩니다)", bg=COLOR_ACCENT, font=("맑은 고딕", 10, "bold"), pady=10)
+map_label_frame.pack(fill="x", padx=40, pady=5)
 
-        .delete-btn:hover {
-            background: #cc0000;
-        }
+def select_region_from_map(region_name):
+    combo_region.set(region_name)
+    messagebox.showinfo("지도 선택 완료", f"📍 지도를 통해 [{region_name}]이 선택되었습니다. 상세 위치를 입력해주세요.")
 
-        .no-data {
-            text-align: center;
-            color: #999;
-            padding: 2rem 0;
-        }
-    </style>
-</head>
-<body>
+map_btn_frame = tk.Frame(map_label_frame, bg=COLOR_ACCENT)
+map_btn_frame.pack()
 
-    <header>
-        <h1>📍 클린창원</h1>
-        <p>우리 동네 쓰레기 방치 및 무단투기 시민 참여형 신고 플랫폼</p>
-    </header>
+regions = ["의창구", "성산구", "마산회원구", "마산합포구", "진해구"]
+for idx, r_name in enumerate(regions):
+    btn = tk.Button(map_btn_frame, text=r_name, font=("맑은 고딕", 9, "bold"), bg="#ffffff", fg=COLOR_PRIMARY, command=lambda name=r_name: select_region_from_map(name))
+    btn.grid(row=0, column=idx, padx=5, pady=5)
 
-    <main>
-        <section class="card">
-            <h2>쓰레기 방치 신고하기</h2>
-            <form id="reportForm">
-                <div class="form-group">
-                    <label for="location">위치 (창원시 구/동 입력)</label>
-                    <input type="text" id="location" placeholder="예: 성산구 중앙동 한서병원 앞" required>
-                </div>
-                <div class="form-group">
-                    <label for="reportType">쓰레기 종류</label>
-                    <select id="reportType" required>
-                        <option value="">-- 선택해 주세요 --</option>
-                        <option value="생활 쓰레기">생활 쓰레기</option>
-                        <option value="대형 폐기물">대형 폐기물 (가구 등)</option>
-                        <option value="플라스틱/일회용품">플라스틱/일회용품 배출 구역 위반</option>
-                        <option value="기타">기타 환경 오염 요인</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="description">상세 설명</label>
-                    <textarea id="description" placeholder="상황을 자세히 적어주시면 빠른 처리에 도움이 됩니다." required></textarea>
-                </div>
-                <button type="submit">신고 접수하기</button>
-            </form>
-        </section>
+form_frame = tk.Frame(tab2, bg="#ffffff")
+form_frame.pack(pady=10)
 
-        <section class="card">
-            <h2>실시간 접수 현황</h2>
-            <div class="report-list" id="reportList">
-                </div>
-        </section>
-    </main>
+tk.Label(form_frame, text="선택된 지역구:", bg="#ffffff", font=("맑은 고딕", 10, "bold")).grid(row=0, column=0, sticky="w", padx=10, pady=5)
+combo_region = ttk.Combobox(form_frame, values=regions, width=40, state="readonly")
+combo_region.grid(row=0, column=1, pady=5)
+combo_region.set("위 지도 버튼을 누르거나 선택하세요")
 
-    <script>
-        // 1. 브라우저 저장소(LocalStorage)에서 기존 데이터 불러오기 (없으면 빈 배열)
-        let reports = JSON.parse(localStorage.getItem('clean_reports')) || [];
+tk.Label(form_frame, text="상세 위치 입력:", bg="#ffffff", font=("맑은 고딕", 10, "bold")).grid(row=1, column=0, sticky="w", padx=10, pady=5)
+entry_loc = tk.Entry(form_frame, width=43)
+entry_loc.grid(row=1, column=1, pady=5)
 
-        // 2. 화면에 신고 목록을 뿌려주는 함수
-        function renderReports() {
-            const reportList = document.getElementById('reportList');
-            reportList.innerHTML = ''; // 기존 목록 초기화
+tk.Label(form_frame, text="쓰레기 종류:", bg="#ffffff", font=("맑은 고딕", 10, "bold")).grid(row=2, column=0, sticky="w", padx=10, pady=5)
+entry_type = tk.Entry(form_frame, width=43)
+entry_type.grid(row=2, column=1, pady=5)
 
-            if (reports.length === 0) {
-                reportList.innerHTML = '<div class="no-data">현재 접수된 신고 내역이 없습니다. 우리 동네를 깨끗하게 만들어 주세요!</div>';
-                return;
-            }
+# 리스트박스로 업그레이드 (더블클릭 이벤트 매핑을 위함)
+list_label_frame = tk.LabelFrame(tab2, text="📋 실시간 신고 목록 (항목을 '더블클릭'하면 이 위치로 즉시 모임을 만듭니다)", bg="#ffffff", font=("맑은 고딕", 10, "bold"))
+list_label_frame.pack(fill="both", expand=True, padx=40, pady=10)
 
-            // 가장 최근에 등록한 신고가 맨 위로 오도록 배열을 역순으로 출력
-            reports.slice().reverse().forEach((report, index) => {
-                // 원래 배열의 정확한 인덱스를 찾기 위한 계산
-                const originalIndex = reports.length - 1 - index;
+report_listbox = tk.Listbox(list_label_frame, height=8, bg="#f5f5f5", font=("맑은 고딕", 10))
+report_listbox.pack(fill="both", expand=True, padx=10, pady=5)
 
-                const div = document.createElement('div');
-                div.className = 'report-item';
-                div.innerHTML = `
-                    <strong>📍 ${escapeHtml(report.location)}</strong>
-                    <span class="type-tag">${escapeHtml(report.type)}</span>
-                    <p>${escapeHtml(report.description)}</p>
-                    <small>접수 일시: ${report.date}</small>
-                    <button class="delete-btn" onclick="deleteReport(${originalIndex})">삭제</button>
-                `;
-                reportList.appendChild(div);
-            });
-        }
+# [피드백 1번 반영] 신고 내역 더블클릭 시 모임 개설 연동 이벤트 함수
+def on_report_double_click(event):
+    try:
+        selected_idx = report_listbox.curselection()[0]
+        selected_report = REPORTED_LIST[selected_idx]
+        
+        ans = messagebox.askyesno("모임 연동 개설", f"📍 선택한 [{selected_report['loc']}] 지역으로 바로 플로깅 모임을 개설하시겠습니까?")
+        if ans:
+            # 모임 만들기 탭의 입력창 내용 채우기
+            entry_gname.delete(0, tk.END)
+            entry_gname.insert(0, f"{selected_report['loc']} 정화 모임")
+            entry_gloc.delete(0, tk.END)
+            entry_gloc.insert(0, f"{selected_report['region']} {selected_report['loc']}")
+            
+            # 모임 만들기 탭(tab3)으로 강제 화면 전환
+            notebook.select(tab3)
+    except IndexError:
+        pass
 
-        // 3. 폼이 제출되었을 때 실행되는 함수
-        document.getElementById('reportForm').addEventListener('submit', function(event) {
-            event.preventDefault(); // 페이지 새로고침 방지
+report_listbox.bind("<Double-Button-1>", on_report_double_click)
 
-            const location = document.getElementById('location').value;
-            const type = document.getElementById('reportType').value;
-            const description = document.getElementById('description').value;
-            const date = new Date().toLocaleString('ko-KR'); // 현재 대한민국 시간 포맷
+def refresh_report_list():
+    report_listbox.delete(0, tk.END)
+    for idx, r in enumerate(REPORTED_LIST, 1):
+        report_listbox.insert(tk.END, f" [{idx}] {r['region']} - {r['loc']} (종류: {r['type']})")
 
-            // 데이터 객체 추가
-            reports.push({ location, type, description, date });
+refresh_report_list()
 
-            // ⭐ 중요: 로컬스토리지에 데이터 영구 저장
-            localStorage.setItem('clean_reports', JSON.stringify(reports));
+def submit_report():
+    reg = combo_region.get()
+    loc = entry_loc.get()
+    typ = entry_type.get()
+    
+    if "선택하세요" in reg or not loc:
+        messagebox.showwarning("경고", "지역 선택과 상세 위치 입력은 필수입니다!")
+        return
+    
+    REPORTED_LIST.append({"region": reg, "loc": loc, "type": typ if typ else "기타 쓰레기"})
+    refresh_report_list()
+    
+    messagebox.showinfo("신고 성공", "🎉 신고가 접수되었습니다! 아래 목록에서 더블클릭하여 바로 모임을 만들어보세요.")
+    entry_loc.delete(0, tk.END)
+    entry_type.delete(0, tk.END)
 
-            // 화면 새로 고치고 입력란 비우기
-            renderReports();
-            document.getElementById('reportForm').reset();
-        });
+btn_report = tk.Button(tab2, text="🚨 쓰레기 지역 신고하기", command=submit_report, bg=COLOR_PRIMARY, fg="white", font=("맑은 고딕", 11, "bold"), padx=20)
+btn_report.pack(pady=5)
 
-        // 4. 특정 신고 내역 삭제 함수
-        function deleteReport(index) {
-            if (confirm("해당 신고 내역을 정말 삭제하시겠습니까?")) {
-                reports.splice(index, 1); // 배열에서 데이터 제거
-                localStorage.setItem('clean_reports', JSON.stringify(reports)); // 저장소 업데이트
-                renderReports(); // 화면 새로고침
-            }
-        }
 
-        // 보안을 위한 텍스트 변환 함수 (XSS 방지)
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-        }
+# ==========================================
+# [탭 3] 플로깅 모임 만들기
+# ==========================================
+tk.Label(tab3, text="📅 새로운 플로깅 모임 개설", font=("맑은 고딕", 14, "bold"), fg=COLOR_PRIMARY, bg="#ffffff").pack(pady=10)
 
-        // 페이지가 처음 열릴 때 데이터 로딩 실행
-        window.onload = renderReports;
-    </script>
-</body>
-</html>
+tk.Label(tab3, text="모임 이름:", bg="#ffffff").pack(anchor="w", padx=60)
+entry_gname = tk.Entry(tab3, width=60)
+entry_gname.pack(pady=3)
+
+tk.Label(tab3, text="활동 장소 명시 (신고화면 더블클릭 시 자동 입력):", bg="#ffffff", fg="#1565c0").pack(anchor="w", padx=60)
+entry_gloc = tk.Entry(tab3, width=60)
+entry_gloc.pack(pady=3)
+
+time_frame = tk.Frame(tab3, bg="#ffffff")
+time_frame.pack(fill="x", padx=60, pady=5)
+
+tk.Label(time_frame, text="활동 시작 시간(시):", bg="#ffffff").grid(row=0, column=0, sticky="w")
+hours_list = [f"{i:02d}" for i in range(24)]
+combo_start_hour = ttk.Combobox(time_frame, values=hours_list, width=10, state="readonly")
+combo_start_hour.grid(row=0, column=1, padx=5)
+combo_start_hour.set("09")
+
+tk.Label(time_frame, text="활동 종료 시간(시):", bg="#ffffff").grid(row=0, column=2, sticky="w", padx=(20, 0))
+combo_end_hour = ttk.Combobox(time_frame, values=hours_list, width=10, state="readonly")
+combo_end_hour.grid(row=0, column=3, padx=5)
+combo_end_hour.set("11")
+
+tk.Label(tab3, text="모집 인원 (최대 50명 제한):", bg="#ffffff").pack(anchor="w", padx=60)
+entry_gmax = tk.Entry(tab3, width=60)
+entry_gmax.pack(pady=3)
+
+tk.Label(tab3, text="준비물 및 모임 설명:", bg="#ffffff").pack(anchor="w", padx=60)
+entry_gdesc = tk.Text(tab3, width=60, height=4)
+entry_gdesc.pack(pady=3)
+
+def create_group():
+    name = entry_gname.get().strip()
+    loc = entry_gloc.get().strip()
+    start_h = int(combo_start_hour.get())
+    end_h = int(combo_end_hour.get())
+    
+    if not name or not loc:
+        messagebox.showwarning("경고", "모임 이름과 활동 장소를 적어주세요.")
+        return
+        
+    try:
+        max_p = int(entry_gmax.get())
+    except ValueError:
+        messagebox.showerror("오류", "모집 인원은 숫자로 적어주세요.")
+        return
+
+    if max_p > 50:
+        messagebox.showwarning("경고", "한 모임의 최대 인원은 50명입니다!")
+        return
+
+    if (start_h >= 22 or start_h <= 6) or (end_h >= 22 or end_h <= 6) or (start_h > end_h):
+        messagebox.showerror("안전 제한", "🚨 야간 플로깅은 개설할 수 없습니다.")
+        return
+
+    # [데이터 바인딩] 전역 데이터베이스에 모임 키 등록 및 채팅 초기화 (피드백 반영)
+    GROUPS_DATA[name] = {
+        "joined": False,
+        "current_p": 1,
+        "max_p": max_p,
+        "chat_history": [
+            "[시스템] 모임방이 개설되었습니다. 자유롭게 대화를 시작하세요!\n",
+            f"방장: 안녕하세요! {loc}에서 진행할 모임입니다. 잘 부탁드려요!\n"
+        ]
+    }
+
+    # 참여하기 탭에 신규 카드 렌더링
+    new_card = tk.LabelFrame(scroll_frame, text="👥 개설된 모임", bg="#ffffff", padx=15, pady=10, bd=2, relief="groove")
+    new_card.pack(fill="x", padx=30, pady=5)
+    
+    tk.Label(new_card, text=f"🌿 {name}", font=("맑은 고딕", 11, "bold"), bg="#ffffff", fg=COLOR_PRIMARY).pack(anchor="w")
+    tk.Label(new_card, text=f"장소: {loc} | ⏱️ 시간: {start_h:02d}시 ~ {end_h:02d}시", font=("맑은 고딕", 9, "bold"), bg="#ffffff", fg="#1565c0").pack(anchor="w")
+    tk.Label(new_card, text=f"준비물: {entry_gdesc.get('1.0', tk.END).strip()}", bg="#ffffff", fg="#666666").pack(anchor="w")
+    
+    bottom_btn_frame = tk.Frame(new_card, bg="#ffffff")
+    bottom_btn_frame.pack(fill="x", pady=5)
+    
+    cnt_frame = tk.Frame(bottom_btn_frame, bg="#ffffff")
+    cnt_frame.pack(side="left")
+    tk.Label(cnt_frame, text="참여 인원: ", bg="#ffffff").grid(row=0, column=0)
+    lbl_curr = tk.Label(cnt_frame, text="1", font=("맑은 고딕", 10, "bold"), fg="blue", bg="#ffffff")
+    lbl_curr.grid(row=0, column=1)
+    tk.Label(cnt_frame, text=f" / {max_p} 명", bg="#ffffff").grid(row=0, column=2)
+    
+    chat_btn = tk.Button(bottom_btn_frame, text="💬 소통 채팅방", bg="#ff9100", fg="white", font=("맑은 고딕", 9, "bold"), command=lambda title=name: open_chat_window(title))
+    chat_btn.pack(side="right", padx=5)
+    
+    btn_j = tk.Button(bottom_btn_frame, text="참여하기", bg=COLOR_PRIMARY, fg="white", font=("맑은 고딕", 9, "bold"))
+    btn_j.config(command=lambda title=name, lbl=lbl_curr, b=btn_j: toggle_group_join(title, lbl, b))
+    btn_j.pack(side="right")
+
+    messagebox.showinfo("개설 성공", f"📅 [{name}] 모임이 등록되었습니다!")
+    
+    entry_gname.delete(0, tk.END)
+    entry_gloc.delete(0, tk.END)
+    entry_gmax.delete(0, tk.END)
+    entry_gdesc.delete("1.0", tk.END)
+    
+    notebook.select(tab4)
+
+btn_create = tk.Button(tab3, text="📅 플로깅 모임 개설 및 등록", command=create_group, bg=COLOR_PRIMARY, fg="white", font=("맑은 고딕", 11, "bold"), padx=20, pady=5)
+btn_create.pack(pady=15)
+
+
+# ==========================================
+# [탭 4] 플로깅 참여하기 (스크롤 구조)
+# ==========================================
+tk.Label(tab4, text="🏃‍♂️ 현재 참여 가능한 플로깅 모임 리스트", font=("맑은 고딕", 14, "bold"), fg=COLOR_PRIMARY, bg=COLOR_BG).pack(pady=10)
+
+canvas = tk.Canvas(tab4, bg=COLOR_BG, highlightthickness=0)
+scrollbar = ttk.Scrollbar(tab4, orient="vertical", command=canvas.yview)
+scroll_frame = tk.Frame(canvas, bg=COLOR_BG)
+
+scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+canvas.create_window((0, 0), window=scroll_frame, anchor="nw", width=740)
+canvas.configure(yscrollcommand=scrollbar.set)
+
+canvas.pack(side="left", fill="both", expand=True)
+scrollbar.pack(side="right", fill="y")
+
+# 기본 샘플 카드 1 
+card1_key = "창원천 산책로 플로깅"
+card1 = tk.LabelFrame(scroll_frame, text="모임 1", bg="#ffffff", padx=15, pady=10)
+card1.pack(fill="x", padx=30, pady=5)
+tk.Label(card1, text=f"🌊 {card1_key}", font=("맑은 고딕", 11, "bold"), bg="#ffffff", fg=COLOR_PRIMARY).pack(anchor="w")
+tk.Label(card1, text="장소: 창원천 산책로 입구 | ⏱️ 시간: 10시 ~ 12시", font=("맑은 고딕", 9, "bold"), bg="#ffffff", fg="#1565c0").pack(anchor="w")
+tk.Label(card1, text="준비물: 집게, 면장갑", bg="#ffffff", fg="#666666").pack(anchor="w")
+
+btn_f1 = tk.Frame(card1, bg="#ffffff")
+btn_f1.pack(fill="x", pady=5)
+cnt_f1 = tk.Frame(btn_f1, bg="#ffffff")
+cnt_f1.pack(side="left")
+tk.Label(cnt_f1, text="참여 인원: ", bg="#ffffff").grid(row=0, column=0)
+lbl_curr1 = tk.Label(cnt_f1, text="45", font=("맑은 고딕", 10, "bold"), fg="blue", bg="#ffffff")
+lbl_curr1.grid(row=0, column=1)
+tk.Label(cnt_f1, text=" / 50 명", bg="#ffffff").grid(row=0, column=2)
+
+tk.Button(btn_f1, text="💬 소통 채팅방", bg="#ff9100", fg="white", font=("맑은 고딕", 9, "bold"), command=lambda: open_chat_window(card1_key)).pack(side="right", padx=5)
+btn_j1 = tk.Button(btn_f1, text="참여하기", bg=COLOR_PRIMARY, fg="white", font=("맑은 고딕", 9, "bold"))
+btn_j1.config(command=lambda: toggle_group_join(card1_key, lbl_curr1, btn_j1))
+btn_j1.pack(side="right")
+
+
+# ==========================================
+# [탭 5] 정화 인증 & 보상 시스템
+# ==========================================
+tk.Label(tab5, text="✅ 정화 완료 인증 및 파일 첨부", font=("맑은 고딕", 14, "bold"), fg=COLOR_PRIMARY, bg="#ffffff").pack(pady=10)
+
+def upload_file(photo_type):
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg")])
+    if file_path:
+        filename = file_path.split("/")[-1]
+        if photo_type == "before":
+            lbl_b_status.config(text=f"📁 선택됨: {filename}", fg="green")
+        elif photo_type == "after":
+            lbl_a_status.config(text=f"📁 선택됨: {filename}", fg="green")
+
+upload_frame = tk.Frame(tab5, bg="#ffffff")
+upload_frame.pack(pady=10)
+
+tk.Button(upload_frame, text="📸 1. Before 사진 첨부 (활동 전)", command=lambda: upload_file("before"), bg="#ffebee", fg="#c62828", font=("맑은 고딕", 9, "bold")).grid(row=0, column=0, padx=10, pady=5)
+lbl_b_status = tk.Label(upload_frame, text="선택된 파일 없음", fg="gray", bg="#ffffff")
+lbl_b_status.grid(row=0, column=1, padx=10, pady=5)
+
+tk.Button(upload_frame, text="✨ 2. After 사진 첨부 (활동 후)", command=lambda: upload_file("after"), bg="#e8f5e9", fg="#2e7d32", font=("맑은 고딕", 9, "bold")).grid(row=1, column=0, padx=10, pady=5)
+lbl_a_status = tk.Label(upload_frame, text="선택된 파일 없음", fg="gray", bg="#ffffff")
+lbl_a_status.grid(row=1, column=1, padx=10, pady=5)
+
+group_photo_var = tk.BooleanVar()
+chk_group_photo = tk.Checkbutton(tab5, text="🧑‍🤝‍🧑 인원들과 단체 사진을 함께 제출합니다 (추가 인증 가산점)", variable=group_photo_var, bg="#ffffff", font=("맑은 고딕", 10))
+chk_group_photo.pack(pady=10)
+
+def submit_cert():
+    if "없음" in lbl_b_status["text"] or "없음" in lbl_a_status["text"]:
+        messagebox.showwarning("사진 누락", "활동 전(Before)과 활동 후(After) 사진을 모두 첨부해야 인증이 가능합니다!")
+        return
+    messagebox.showinfo("인증 완료", "✅ 인증 신청 완료!")
+
+btn_cert = tk.Button(tab5, text="🛡️ 정화 활동 최종 인증하기", command=submit_cert, bg="#1976d2", fg="white", font=("맑은 고딕", 11, "bold"), padx=20, pady=5)
+btn_cert.pack(pady=10)
+
+# 고정 하단
+footer_frame = tk.Frame(root, bg="#263238", borderwidth=0, pady=10)
+footer_frame.pack(fill="x", side="bottom")
+tk.Label(footer_frame, text="창원시 지역사회 문제 해결 프로젝트 | 학번 2106 김정원", fg="#cfd8dc", bg="#263238", font=("맑은 고딕", 9)).pack()
+
+root.mainloop()
