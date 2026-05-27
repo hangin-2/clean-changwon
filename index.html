@@ -13,7 +13,6 @@
     <style>
         :root {
             --color-primary: #2e7d32;
-            --color-primary-dark: #1b5e20;
             --color-secondary: #81c784;
             --color-accent: #e3f2fd;
             --color-bg: #f9fbf9;
@@ -53,25 +52,18 @@
         .tab-content { display: none; padding: 20px; max-width: 850px; width: 100%; margin: 0 auto; flex: 1; }
         .tab-content.active { display: block; }
         .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card h2 { font-size: 18px; font-weight: 700; margin-bottom: 15px; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
         .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
         .btn-submit { background: var(--color-primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px; }
 
-        /* 👑 랭킹 테이블 스타일 */
-        .rank-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        .rank-table th, .rank-table td { padding: 12px; text-align: center; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-        .rank-table th { background: #f8fafc; color: #475569; font-weight: bold; }
-        .rank-row-1 { background: rgba(255, 215, 0, 0.08); font-weight: bold; }
-        .rank-row-2 { background: rgba(192, 192, 192, 0.08); font-weight: bold; }
-        .rank-row-3 { background: rgba(205, 127, 50, 0.08); font-weight: bold; }
-        .badge-crown { font-size: 15px; margin-left: 4px; vertical-align: middle; }
-
-        /* 신고 리스트 및 삭제 버튼 */
-        .report-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #ddd; background: #fafafa; margin-bottom: 5px; border-radius: 6px; }
-        .btn-report-del { background: #d32f2f; color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        .btn-report-del:hover { background: #b71c1c; }
+        /* 신고 아이템 스타일 */
+        .report-item {
+            padding: 12px; border-bottom: 1px solid #ddd; cursor: pointer; transition: background 0.2s;
+        }
+        .report-item:hover {
+            background: #f1f8e9;
+        }
 
         /* 그룹 카드 */
         .group-card { border-left: 5px solid var(--color-primary); position: relative;}
@@ -91,6 +83,7 @@
 
         /* 홈 화면 이미지 스타일 */
         .home-img { width: 100%; border-radius: 10px; margin: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .time-select-container { display: flex; align-items: center; gap: 5px; }
     </style>
 </head>
 <body>
@@ -144,22 +137,6 @@
             <img src="image_ecc85f.png" alt="클린창원 활동 사진 1" class="home-img" onerror="this.style.display='none'">
             <img src="image_eccbe1.png" alt="클린창원 활동 사진 2" class="home-img" onerror="this.style.display='none'">
         </div>
-
-        <div class="card">
-            <h2><i class="fa-solid fa-trophy" style="color: #ffb300;"></i> 실시간 우수 메이트 랭킹</h2>
-            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">🏆 우리 동네 최고 환경 활동가는 누구일까요? 높은 순위의 1,2,3등에겐 특별한 영광의 왕관 부여!</p>
-            <table class="rank-table">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">순위</th>
-                        <th style="width: 50%;">이용자 아이디</th>
-                        <th style="width: 30%;">보유 포인트</th>
-                    </tr>
-                </thead>
-                <tbody id="rank-tbody">
-                    </tbody>
-            </table>
-        </div>
     </div>
 
     <div id="tab2" class="tab-content">
@@ -179,10 +156,15 @@
                 <label>상세 위치 입력</label>
                 <input type="text" id="entry-loc" placeholder="예: 창원천 다리 밑">
             </div>
+            <div class="form-group">
+                <label>자세한 현황 입력</label>
+                <textarea id="entry-status" rows="3" placeholder="예: 일회용 컵과 플라스틱 배달 용기가 무단 투기되어 쌓여있습니다."></textarea>
+            </div>
             <button class="btn-submit" onclick="submitReport()">신고 등록</button>
         </div>
         <div class="card">
-            <h3>📋 실시간 신고 목록</h3>
+            <h3>📋 실시간 신고 목록 (클릭 시 모임 개설 연동)</h3>
+            <p style="font-size:12px; color:#666; margin-bottom:10px;">정화가 필요한 목록을 클릭하면 해당 위치정보를 기반으로 모임을 바로 만들 수 있습니다.</p>
             <div id="report-listbox" style="margin-top: 10px;"></div>
         </div>
     </div>
@@ -202,10 +184,25 @@
                 <label>참여 날짜</label>
                 <input type="date" id="entry-date">
             </div>
-            <div class="form-group" style="display: flex; gap: 10px;">
-                <div style="flex: 1;"><label>시작 시간</label><select id="combo-start"></select></div>
-                <div style="flex: 1;"><label>종료 시간</label><select id="combo-end"></select></div>
+            <div class="form-group" style="display: flex; gap: 20px;">
+                <div style="flex: 1;">
+                    <label>시작 시간</label>
+                    <div class="time-select-container">
+                        <select id="start-hour"></select> 시
+                        <select id="start-minute"></select> 분
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <label>종료 시간</label>
+                    <div class="time-select-container">
+                        <select id="end-hour"></select> 시
+                        <select id="end-minute"></select> 분
+                    </div>
+                </div>
             </div>
+            <p style="font-size: 12px; color: #e53935; margin-bottom: 15px; font-weight: bold;">
+                ⚠️ 안전을 위해 야간 및 새벽 시간대(오후 10시 ~ 오전 5시) 및 이미 지난 과거 시간대에는 모임을 개설할 수 없습니다.
+            </p>
             <button class="btn-submit" onclick="createGroup()">모임 개설하기</button>
         </div>
     </div>
@@ -218,7 +215,6 @@
     <div id="tab5" class="tab-content">
         <div class="card" id="upload-card">
             <h3 style="margin-bottom: 15px;">🛡️ 정화 활동 사진 인증 (포인트 지급)</h3>
-            <p style="font-size: 12px; color: #d32f2f; margin-bottom: 10px; font-weight: bold;">⚠️ 방장이 활동 종료를 완료한 정화 모임만 리스트에 등장합니다.</p>
             <div class="form-group">
                 <label>인증할 모임 선택</label>
                 <select id="combo-cert-group"><option value="">-- 모임을 선택하세요 --</option></select>
@@ -275,15 +271,24 @@
         let currentOpenChatRoom = ""; 
         let allGroupsCache = {}; 
         
-        // 시간 컴보박스 초기화
-        const startCombo = document.getElementById('combo-start');
-        const endCombo = document.getElementById('combo-end');
+        // 시/분 컴보박스 24시간 및 10분 단위 세밀 초기화
+        const startHourCombo = document.getElementById('start-hour');
+        const startMinCombo = document.getElementById('start-minute');
+        const endHourCombo = document.getElementById('end-hour');
+        const endMinCombo = document.getElementById('end-minute');
+
         for(let i=0; i<24; i++) {
-            let hr = String(i).padStart(2, '0') + "시";
-            startCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
-            endCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
+            let hr = String(i).padStart(2, '0');
+            startHourCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
+            endHourCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
         }
-        startCombo.value = "09시"; endCombo.value = "11시";
+        for(let j=0; j<60; j+=5) { // 5분 단위 설정 가능 구조
+            let mn = String(j).padStart(2, '0');
+            startMinCombo.innerHTML += `<option value="${mn}">${mn}</option>`;
+            endMinCombo.innerHTML += `<option value="${mn}">${mn}</option>`;
+        }
+        startHourCombo.value = "09"; startMinCombo.value = "00";
+        endHourCombo.value = "11"; endMinCombo.value = "00";
 
         // 날짜 오늘 날짜로 기본 설정
         document.getElementById('entry-date').valueAsDate = new Date();
@@ -343,7 +348,7 @@
         // 로그인 성공 시 처리
         function processLoginSuccess(id) {
             CURRENT_USER = id;
-            localStorage.setItem('CL_CURRENT_USER', id); // F5 새로고침 유지용 저장
+            localStorage.setItem('CL_CURRENT_USER', id); 
             document.getElementById('auth-overlay').style.display = 'none';
             initApp();
         }
@@ -352,7 +357,7 @@
         function logout() {
             if(confirm("정말 로그아웃 하시겠습니까?")) {
                 localStorage.removeItem('CL_CURRENT_USER');
-                location.reload(); // 새로고침해서 초기 상태로 복귀
+                location.reload();
             }
         }
 
@@ -361,19 +366,16 @@
             let rankStr = CURRENT_USER === ADMIN_ID ? "⭐ 관리자" : "시민";
             document.getElementById('user-badge').innerText = `👤 [${rankStr}] ${CURRENT_USER}님`;
             
-            // 내 포인트 실시간 모니터링
             db.ref('users/' + CURRENT_USER + '/points').on('value', snap => {
                 const pts = snap.val() || 0;
                 document.getElementById('user-points').innerText = `포인트: ${pts}P`;
             });
 
-            // 관리자는 인증 탭 상단 UI 숨김 (승인만 하도록)
             if(CURRENT_USER === ADMIN_ID) {
                 document.getElementById('upload-card').style.display = 'none';
             }
 
             initFirebaseListeners();
-            initRankingListener(); // 실시간 순위판 리스너 시작
         }
 
         function switchTab(tabIndex) {
@@ -383,72 +385,36 @@
             document.querySelectorAll('.nav-btn')[tabIndex-1].classList.add('active');
         }
 
-        // 👑 실시간 이용자 포인트 순위판 갱신 및 왕관 이모지 배정 엔진
-        function initRankingListener() {
-            db.ref('users').on('value', snapshot => {
-                const tbody = document.getElementById('rank-tbody');
-                tbody.innerHTML = "";
-                if(!snapshot.exists()) return;
-
-                let userList = [];
-                snapshot.forEach(child => {
-                    const userId = child.key;
-                    // 총 책임 관리자 계정은 랭킹판 산정에서 제외
-                    if(userId !== ADMIN_ID) {
-                        userList.push({
-                            id: userId,
-                            points: child.val().points || 0
-                        });
-                    }
-                });
-
-                // 포인트 높은 순으로 내림차순 정렬
-                userList.sort((a, b) => b.points - a.points);
-
-                userList.forEach((user, index) => {
-                    const rankNum = index + 1;
-                    let rankClass = "";
-                    let crownEmoji = "";
-
-                    // 1, 2, 3등 왕관 및 메달 마크 특수 분기 시각화
-                    if(rankNum === 1) { rankClass = "rank-row-1"; crownEmoji = '<span class="badge-crown">👑🥇</span>'; }
-                    else if(rankNum === 2) { rankClass = "rank-row-2"; crownEmoji = '<span class="badge-crown">👑🥈</span>'; }
-                    else if(rankNum === 3) { rankClass = "rank-row-3"; crownEmoji = '<span class="badge-crown">👑🥉</span>'; }
-
-                    tbody.innerHTML += `
-                        <tr class="${rankClass}">
-                            <td><strong>${rankNum}등</strong></td>
-                            <td>${user.id} ${crownEmoji}</td>
-                            <td><span style="color:#2e7d32; font-weight:bold;">${user.points} P</span></td>
-                        </tr>
-                    `;
-                });
-            });
+        // 신고 항목 선택 시 모임 생성 탭으로 값 전달 연동 헬퍼 함수
+        function selectReportToCreateGroup(region, loc, status) {
+            alert(`📌 신고지 정보가 선택되었습니다!\n[모임 만들기] 탭으로 이동하여 정보를 자동 기입합니다.`);
+            switchTab(3);
+            document.getElementById('entry-gname').value = `${region} ${loc} 정화 플로깅`;
+            document.getElementById('entry-gloc').value = `창원시 ${region} ${loc}`;
+            if(status) {
+                alert(`📋 참고 현황 내용:\n"${status}"`);
+            }
         }
 
         function initFirebaseListeners() {
-            // 신고 연동 및 관리자 전용 삭제 제어판 설계
+            // 신고 연동 리스너 (상세 현황 및 클릭 이벤트 바인딩)
             db.ref('reports').on('value', snapshot => {
                 const listbox = document.getElementById('report-listbox');
                 listbox.innerHTML = "";
-                if(!snapshot.exists()){
-                    listbox.innerHTML = "<p style='color:#999; font-size:13px;'>접수된 신고 내역이 없습니다.</p>";
+                if(!snapshot.exists()) {
+                    listbox.innerHTML = `<div style="padding:15px; text-align:center; color:#999; font-size:13px;">등록된 신고 현황이 없습니다.</div>`;
                     return;
                 }
                 snapshot.forEach(child => {
-                    const rKey = child.key;
                     const data = child.val();
-
-                    // 최고 권한 관리자일 때만 파기 권한 버튼 생성
-                    let delBtn = "";
-                    if(CURRENT_USER === ADMIN_ID) {
-                        delBtn = `<button class="btn-report-del" onclick="deleteReport('${rKey}')">🗑️ 신고 삭제</button>`;
-                    }
+                    const region = data.region || "";
+                    const loc = data.loc || "";
+                    const status = data.status || "자세한 현황이 적혀있지 않습니다.";
 
                     listbox.innerHTML += `
-                        <div class="report-item">
-                            <span>🚨 <strong>[${data.region}]</strong> ${data.loc}</span>
-                            ${delBtn}
+                        <div class="report-item" onclick="selectReportToCreateGroup('${region}', '${loc}', '${status.replace(/\n/g, " ")}')">
+                            <div style="font-weight:bold; color:#e53935; margin-bottom:4px;">🚨 [${region}] ${loc}</div>
+                            <div style="font-size:13px; color:#555; padding-left:18px; line-height:1.4;">📄 <strong>상세 현황:</strong> ${status}</div>
                         </div>`;
                 });
             });
@@ -470,7 +436,6 @@
                     const isHost = g.host === CURRENT_USER;
                     const isAdmin = CURRENT_USER === ADMIN_ID;
 
-                    // 방장이거나 관리자면 삭제 및 완료 버튼 렌더링
                     let actionBtn = "";
                     let hostFinishBtn = "";
                     
@@ -502,19 +467,18 @@
                     `;
                 });
 
-                // 종료 가공 처리 아카이브에서 인증 가능한 소속 방 추적 로드
                 db.ref('closed_groups_archive').once('value', archSnap => {
                     archSnap.forEach(ac => {
                         const roomName = ac.key;
                         const roomData = ac.val();
-                        if (roomData.members && roomData.members[CURRENT_USER] || CURRENT_USER === ADMIN_ID) {
+                        if ((roomData.members && roomData.members[CURRENT_USER]) || CURRENT_USER === ADMIN_ID) {
                             certCombo.innerHTML += `<option value="${roomName}">${roomName}</option>`;
                         }
                     });
                 });
             });
 
-            // 사진 인증 피드 (관리자 승인 기능 포함)
+            // 사진 인증 피드
             db.ref('certs').on('value', snapshot => {
                 const container = document.getElementById('cert-feed-container');
                 container.innerHTML = "";
@@ -543,96 +507,139 @@
             });
         }
 
-        // 🗑️ 부적절한 오염 신고 삭제 (관리자 전용 기능)
-        function deleteReport(reportKey) {
-            if(confirm("🚨 관리자 전 권한 안내:\n해당 오염 지역 신고 내용이 부적절하거나 허위 제보라고 판단되어 즉시 삭제하시겠습니까?")) {
-                db.ref('reports/' + reportKey).remove().then(() => {
-                    alert("🗑️ 해당 신고가 성공적으로 삭제 처리되었습니다.");
-                });
-            }
-        }
-
-        // 모임 폭파 삭제 (방장 or 관리자 단순 영구 파기)
-        function deleteGroup(gKey) {
-            if(confirm(`[${gKey}] 모임을 완전히 삭제하시겠습니까?\n채팅 기록도 함께 사라집니다.`)) {
-                db.ref('groups/' + gKey).remove();
-                db.ref('chats/' + gKey).remove();
-            }
-        }
-
-        // ⏰ [요구사항 핵심 반영] 종료 시간이 되기 전까지 방장의 종료 처리를 완전 제한 차단하는 엔진
+        // 방장이 자기가 연 플로깅 모임에서 플로깅 종료 시간이 되기 전까지 플로깅 완료 표시 방지 검증 로직
         function closeAndDestroyGroup(gKey) {
             const targetGroup = allGroupsCache[gKey];
             if(!targetGroup) return;
 
-            // 현재 장치(시스템) 시간 연산 구동
             const now = new Date();
             const nowYear = now.getFullYear();
             const nowMonth = String(now.getMonth() + 1).padStart(2, '0');
             const nowDateStr = String(now.getDate()).padStart(2, '0');
             const todayFormatted = `${nowYear}-${nowMonth}-${nowDateStr}`;
+            
             const currentHour = now.getHours();
+            const currentMin = now.getMinutes();
 
-            // 모임의 설정된 해산/종료 시간 정수로 변환 (예: '11시' -> 11)
-            const endHour = parseInt(targetGroup.end_time.replace("시", ""), 10);
+            // 'HH:MM' 형태 분할 추출
+            const [endHour, endMin] = targetGroup.end_time.split(":").map(Number);
 
-            // 시간 검증 필터레이션 설계
             let isTimeArrived = false;
             if (targetGroup.date < todayFormatted) {
-                // 이미 지난 날짜의 모임일 경우 통과
                 isTimeArrived = true;
-            } else if (targetGroup.date === todayFormatted && currentHour >= endHour) {
-                // 오늘 날짜이면서 현재 시간이 종료 시각 이상일 경우 통과
-                isTimeArrived = true;
+            } else if (targetGroup.date === todayFormatted) {
+                if (currentHour > endHour || (currentHour === endHour && currentMin >= endMin)) {
+                    isTimeArrived = true;
+                }
             }
 
-            // 만약 아직 설정된 종료 시간이 되지 않았다면 차단 처리
             if (!isTimeArrived) {
-                alert(`🚫 종료 처리 불가!\n아직 설정하신 플로깅 약속 종료 시간(${targetGroup.end_time})이 되지 않았습니다.\n안전하고 성실하게 활동을 마친 후에 최종 완료 버튼을 눌러주세요!`);
+                alert(`🚫 아직 설정한 플로깅 종료 시간(${targetGroup.end_time})이 되지 않았습니다!\n활동을 충실히 마친 후 마감해 주세요.`);
                 return;
             }
 
-            // 조건 통과 시 정상 종료 보관 처리 실행
-            if(confirm(`[${gKey}] 활동 종료 검증에 통과했습니다.\n정말로 플로깅 완료 처리를 진행하여 대원들에게 인증 권한을 개방하시겠습니까?`)) {
+            if(confirm(`[${gKey}] 모임을 마감 처리하시겠습니까?\n이후 참여 대원들의 사진 인증 콤보가 개방됩니다.`)) {
                 db.ref(`closed_groups_archive/${gKey}`).set({
                     members: targetGroup.members || {},
                     host: targetGroup.host,
                     loc: targetGroup.loc
                 }).then(() => {
                     db.ref(`groups/${gKey}`).remove();
-                    alert("🚩 플로깅 활동이 안전하게 정상 마감 처리되었습니다!\n팀원들의 인증 탭 리스트에 모임이 개방되었습니다.");
+                    alert("🚩 플로깅 모임이 성공적으로 완료 및 아카이브 보관되었습니다!");
                 });
             }
         }
 
+        function deleteGroup(gKey) {
+            if(confirm(`[${gKey}] 모임을 완전히 삭제하시겠습니까?`)) {
+                db.ref('groups/' + gKey).remove();
+                db.ref('chats/' + gKey).remove();
+            }
+        }
+
+        // 모임 만들기 생성 및 고도화 시간 검증 엔진 (과거 차단, 야간 활동 제한)
         function createGroup() {
             const name = document.getElementById('entry-gname').value.trim();
             const loc = document.getElementById('entry-gloc').value.trim();
             const date = document.getElementById('entry-date').value;
-            const start = document.getElementById('combo-start').value;
-            const end = document.getElementById('combo-end').value;
+            
+            const sH = document.getElementById('start-hour').value;
+            const sM = document.getElementById('start-minute').value;
+            const eH = document.getElementById('end-hour').value;
+            const eM = document.getElementById('end-minute').value;
+
+            const start_time_str = `${sH}:${sM}`;
+            const end_time_str = `${eH}:${eM}`;
 
             if(!name || !loc || !date) { alert("빈칸을 모두 채워주세요!"); return; }
 
-            // 논리적 타임라인 오류 검증 (종료 시간이 시작 시간보다 같거나 빠를 수 없음)
-            const sHr = parseInt(start.replace("시",""), 10);
-            const eHr = parseInt(end.replace("시",""), 10);
-            if(eHr <= sHr) {
-                alert("🚫 시간대 설정 오류!\n종료 시간은 시작 시간보다 미래 시점이어야 개설 가능합니다.");
+            // 논리 시간 순서 체크
+            const startTotalMin = parseInt(sH, 10) * 60 + parseInt(sM, 10);
+            const endTotalMin = parseInt(eH, 10) * 60 + parseInt(eM, 10);
+            if(endTotalMin <= startTotalMin) {
+                alert("🚫 시간 설정 오류: 종료 시간은 시작 시간보다 늦어야 합니다.");
                 return;
+            }
+
+            // 1. 야간 및 새벽 활동 제약 체크 (오후 10시(22:00)부터 오전 5시(05:00) 차단)
+            // 시작 또는 종료 시간 중 하나라도 22:00 이후 이거나 05:00 이전이면 차단
+            const sHourNum = parseInt(sH, 10);
+            const eHourNum = parseInt(eH, 10);
+            
+            // 22시부터 다음날 5시 조건 체크
+            if ((sHourNum >= 22 || sHourNum < 5) || (eHourNum >= 22 || eHourNum < 5) || (startTotalMin < 300 && endTotalMin > 1320)) {
+                alert("🚫 활동 불가 시간대입니다!\n시민 안전을 위해 오후 10시(22:00)부터 오전 5시(05:00) 사이에는 모임을 만들 수 없습니다.");
+                return;
+            }
+
+            // 2. 과거 시간대 생성 금지 체크
+            const now = new Date();
+            const nowYear = now.getFullYear();
+            const nowMonth = String(now.getMonth() + 1).padStart(2, '0');
+            const nowDateStr = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${nowYear}-${nowMonth}-${nowDateStr}`;
+
+            if (date < todayStr) {
+                alert("🚫 지난 날짜에는 모임을 만들 수 없습니다.");
+                return;
+            } else if (date === todayStr) {
+                const nowTotalMin = now.getHours() * 60 + now.getMinutes();
+                if (startTotalMin <= nowTotalMin) {
+                    alert("🚫 이미 지난 시간대에는 모임을 만들 수 없습니다. 현재 시각 이후로 설정해주세요.");
+                    return;
+                }
             }
 
             let initMembers = {}; initMembers[CURRENT_USER] = true;
             
-            // 방장(host) 데이터 추가 저장
             db.ref('groups/' + name).set({
                 host: CURRENT_USER,
-                loc: loc, date: date, start_time: start, end_time: end,
+                loc: loc, date: date, start_time: start_time_str, end_time: end_time_str,
                 members: initMembers
             }).then(() => {
-                db.ref('chats/' + name).push({ user: "[시스템]", msg: `방장(${CURRENT_USER})님이 모임방을 열었습니다!` });
-                alert("방장 권한으로 모임이 개설되었습니다!");
+                db.ref('chats/' + name).push({ user: "[시스템]", msg: `방장(${CURRENT_USER})님이 모임방을 개설했습니다!` });
+                alert("새로운 분 단위 연동 플로깅 모임이 안전하게 승인 및 개설되었습니다!");
                 switchTab(4);
+            });
+        }
+
+        // 신고 등록 메서드 (현황 항목 포함 전송 구조화)
+        function submitReport() {
+            const region = document.getElementById('combo-region').value;
+            const loc = document.getElementById('entry-loc').value.trim();
+            const status = document.getElementById('entry-status').value.trim();
+
+            if(!loc) { alert("상세 위치를 입력하세요."); return; }
+            if(!status) { alert("자세한 현황 상태를 기입해주세요."); return; }
+
+            db.ref('reports').push({
+                region: region,
+                loc: loc,
+                status: status
+            }).then(() => {
+                alert("오염 구역 상세 현황 보고 및 신고 처리가 정상 등록되었습니다!");
+                document.getElementById('entry-loc').value = "";
+                document.getElementById('entry-status').value = "";
             });
         }
 
@@ -650,7 +657,6 @@
             }
         }
 
-        // --- HTML 사진 용량 압축 및 표시 엔진 (Base64) ---
         function previewImage(input, imgId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -665,11 +671,11 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         
-                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6); // 60% 품질로 압축
+                        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.6);
                         const preview = document.getElementById(imgId);
                         preview.src = compressedBase64;
                         preview.style.display = "block";
-                        input.dataset.base64 = compressedBase64; // 전송용 임시 저장
+                        input.dataset.base64 = compressedBase64;
                     }
                     img.src = e.target.result;
                 }
@@ -696,7 +702,6 @@
             });
         }
 
-        // 총 책임 관리자 전용 기능 - 승인 및 포인트 지급
         function approveCert(certKey, targetUser) {
             if(confirm(`${targetUser} 시민의 인증을 확인하셨습니까?\n확인 시 10 포인트가 지급됩니다.`)) {
                 db.ref(`certs/${certKey}`).update({ verified: true });
@@ -707,22 +712,7 @@
                 alert("승인 완료! 10 포인트가 지급되었습니다.");
             }
         }
-
-        function submitReport() {
-            const region = document.getElementById('combo-region').value;
-            const loc = document.getElementById('entry-loc').value.trim();
-            if(!loc) { alert("상세 위치를 입력하세요."); return; }
-
-            db.ref('reports').push({
-                region: region,
-                loc: loc
-            }).then(() => {
-                alert("신고가 정상 접수 및 지도에 매핑되었습니다!");
-                document.getElementById('entry-loc').value = "";
-            });
-        }
         
-        // 채팅 로직
         function openChat(gKey) {
             currentOpenChatRoom = gKey;
             document.getElementById('chat-room-title').innerText = `💬 ${gKey}`;
@@ -738,6 +728,7 @@
                 box.scrollTop = box.scrollHeight;
             });
         }
+
         function sendChatMessage() {
             const msg = document.getElementById('chat-input-msg').value;
             if(!msg) return;
