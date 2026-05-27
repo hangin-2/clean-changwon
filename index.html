@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>클린창원 - 시민 참여형 플로깅 플랫폼</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <style>
-        /* ==========================================
-           파이썬 Tkinter 색상 테마 및 스타일 완벽 재현
-           ========================================== */
         :root {
             --color-primary: #2e7d32;
             --color-secondary: #81c784;
@@ -15,176 +18,191 @@
             --color-bg: #f9fbf9;
             --color-dark: #263238;
         }
-        body {
-            font-family: '맑은 고딕', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--color-bg);
-            color: #333333;
-        }
-        
-        /* 탭(Notebook) 메뉴 스타일 */
-        header {
-            background-color: white;
-            padding: 10px 10px 0 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            gap: 5px;
-        }
-        .tab-btn {
-            background-color: var(--color-accent);
-            border: 1px solid #ccc;
-            border-bottom: none;
-            padding: 10px 20px;
-            font-weight: bold;
-            font-size: 14px;
-            color: #333333;
-            cursor: pointer;
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-            transition: 0.2s;
-        }
-        .tab-btn.active {
-            background-color: var(--color-primary);
-            color: white;
-            border-color: var(--color-primary);
-        }
-        
-        /* 메인 컨텐츠 윈도우 창 */
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            min-height: 550px;
-            box-sizing: border-box;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* 타이틀 & 구문 */
-        h1 { color: var(--color-primary); text-align: center; margin-top: 0; font-size: 24px; }
-        .sub-title { text-align: center; color: #555555; font-style: italic; margin-bottom: 25px; font-size: 14px; }
-        .section-title { font-size: 17px; font-weight: bold; color: #c62828; text-align: center; margin: 15px 0 5px 0; }
-        .section-desc { text-align: center; line-height: 1.6; font-size: 14px; margin-bottom: 15px; }
-        
-        /* 그리드 / 카드 스타일 */
-        .grid-frame { display: flex; gap: 8px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
-        .grid-badge { background: #ffebee; color: #c62828; font-weight: bold; padding: 10px 15px; border: 1px solid #c62828; border-radius: 4px; font-size: 14px; }
-        .flow-box { background: var(--color-accent); color: #1565c0; font-weight: bold; text-align: center; padding: 12px; border: 1px ridge #1565c0; border-radius: 5px; font-size: 14px; margin-top: 20px; }
-        
-        /* 가상 지도 및 입력 폼 */
-        .map-frame { border: 2px solid #ccc; background-color: var(--color-accent); padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-        .map-title { font-weight: bold; margin-bottom: 10px; display: block; font-size: 14px; }
-        .map-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-        .map-btn { background: white; border: 1px solid var(--color-primary); color: var(--color-primary); padding: 6px 12px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        .map-btn:hover { background: var(--color-primary); color: white; }
-        
-        .form-frame { max-width: 550px; margin: 0 auto 20px auto; }
-        .form-group { display: flex; align-items: center; margin-bottom: 12px; }
-        .form-group label { width: 120px; font-weight: bold; font-size: 14px; }
-        .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 14px; }
-        .form-stack label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        .form-stack { width: 85%; margin: 0 auto 12px auto; }
-        .form-stack input, .form-stack textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; box-sizing: border-box; font-size: 14px; }
-        
-        /* 버튼 공통 */
-        .btn-action { background-color: var(--color-primary); color: white; border: none; padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 4px; cursor: pointer; display: block; margin: 15px auto; }
-        .btn-action:hover { opacity: 0.9; }
-        
-        /* 텍스트박스 / 실시간 리스트 */
-        .text-box-frame { border: 1px solid #ccc; background: #ffffff; padding: 10px; border-radius: 4px; }
-        .list-box { background: #f5f5f5; border: 1px solid #ddd; height: 160px; overflow-y: auto; padding: 10px; border-radius: 4px; font-size: 13px; }
-        .list-item { padding: 8px 0; border-bottom: 1px dashed #ccc; line-height: 1.6; }
-        
-        /* 탭 4: 세로 스크롤 영역 카드 레이아웃 */
-        .scroll-container { height: 400px; overflow-y: auto; padding-right: 5px; }
-        .meeting-card { border: 2px groove #eee; padding: 15px; border-radius: 6px; background: white; position: relative; margin-bottom: 15px; box-shadow: 0 1px 4px rgba(0,0,0,0.02); }
-        .meeting-card-title { font-size: 15px; font-weight: bold; color: var(--color-primary); margin-bottom: 5px; }
-        .meeting-card-info { color: #666666; font-size: 13px; margin-bottom: 5px; }
-        .meeting-card-count { font-size: 14px; }
-        .btn-join { position: absolute; right: 15px; bottom: 15px; background: var(--color-primary); color: white; border: none; padding: 6px 15px; font-weight: bold; border-radius: 4px; cursor: pointer; font-size: 13px; }
-        .btn-join:disabled { background: #bbb !important; cursor: not-allowed; }
-        
-        /* 파일 업로드 스타일 */
-        .file-btn { display: inline-block; padding: 8px 15px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 13px; border: none; }
-        .file-status { margin-left: 15px; color: gray; font-size: 14px; }
-        
-        /* 고정 하단 푸터 */
-        footer { background-color: var(--color-dark); color: #cfd8dc; text-align: center; padding: 12px 0; font-size: 13px; margin-top: 30px; }
-        footer .quote { color: var(--color-secondary); font-style: italic; margin-top: 4px; }
-    </style>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background-color: #ffffff;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* 로그인 모달 */
+        #login-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .login-box {
+            background: white; padding: 30px; border-radius: 12px;
+            width: 360px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .login-box h2 { color: var(--color-primary); margin-bottom: 15px; font-size: 20px; }
+        .login-box input {
+            width: 100%; padding: 10px; margin: 15px 0;
+            border: 1px solid #ccc; border-radius: 6px; font-size: 16px;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: var(--color-primary);
+            color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;
+        }
+
+        /* 메인 헤더 & 네비게이션 */
+        header {
+            background: var(--color-primary); color: white; padding: 20px; text-align: center;
+        }
+        header h1 { font-size: 24px; margin-bottom: 5px; }
+        
+        nav {
+            display: flex; background: #eee; border-bottom: 2px solid var(--color-primary);
+            overflow-x: auto;
+        }
+        nav button {
+            flex: 1; padding: 15px 10px; border: none; background: none;
+            font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; white-space: nowrap;
+        }
+        nav button.active {
+            background: var(--color-primary); color: white;
+        }
+
+        /* 탭 콘텐츠 영역 */
+        .tab-content {
+            display: none; padding: 20px; max-width: 850px; width: 100%; margin: 0 auto; flex: 1;
+        }
+        .tab-content.active { display: block; }
+
+        /* 공통 스타일 양식 */
+        .card {
+            background: white; border: 1px solid #ddd; border-radius: 8px;
+            padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;
+        }
+        .btn-submit {
+            background: var(--color-primary); color: white; border: none; padding: 12px 20px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; font-size: 16px;
+        }
+
+        /* 구 선택 지도 버튼 가상 레이아웃 */
+        .map-frame { background: var(--color-accent); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .map-grid { display: grid; grid-template-columns: repeat(3, 11fr); gap: 8px; margin-top: 8px; }
+        .map-grid button {
+            background: white; border: 1px solid var(--color-primary); padding: 8px;
+            border-radius: 4px; font-weight: bold; color: var(--color-primary); cursor: pointer;
+        }
+
+        /* 리스트 목록 상자 */
+        .list-box {
+            background: #f5f5f5; border: 1px solid #ccc; border-radius: 6px;
+            max-height: 200px; overflow-y: auto; margin-top: 10px;
+        }
+        .list-item {
+            padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; transition: 0.2s;
+        }
+        .list-item:hover { background: #e8f5e9; }
+
+        /* 참여하기 카드 인원 및 버튼 디자인 */
+        .group-card { border-left: 5px solid var(--color-primary); }
+        .group-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+        .btn-chat { background: #ff9100; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; margin-right: 5px;}
+        .btn-join { background: var(--color-primary); color: white; padding: 6px 12px; border-radius: 4px; border: none; font-size: 13px; font-weight: bold; cursor: pointer;}
+        .btn-leave { background: #d32f2f; color: white; padding: 6px 12px; border-radius: 4px; border: none; font-size: 13px; font-weight: bold; cursor: pointer;}
+
+        /* 인증화면 2분할 레이아웃 */
+        .pane-container { display: flex; gap: 15px; margin-top: 15px; }
+        .pane-left { flex: 1; }
+        .pane-right { width: 300px; background: #f5f5f5; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .img-placeholder {
+            height: 100px; border: 1px dashed #ccc; display: flex; align-items: center;
+            justify-content: center; text-align: center; font-size: 12px; margin-bottom: 10px; border-radius: 4px;
+        }
+
+        /* 채팅방 모달 */
+        #chat-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000;
+        }
+        .chat-box {
+            background: white; width: 400px; height: 500px; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden;
+        }
+        .chat-header { background: var(--color-primary); color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; }
+        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #f9f9f9; font-size: 14px; }
+        .chat-input-area { display: flex; padding: 10px; border-top: 1px solid #ddd; }
+        .chat-input-area input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .chat-input-area button { background: var(--color-primary); color: white; border: none; padding: 0 15px; margin-left: 5px; border-radius: 4px; cursor: pointer;}
+
+        footer {
+            background: var(--color-dark); color: #cfd8dc; text-align: center; padding: 12px; font-size: 13px; margin-top: auto;
+        }
+    </style>
 </head>
 <body>
 
-<header>
-    <ul class="nav-tabs">
-        <li><button class="tab-btn active" onclick="openTab('tab1', this)">홈 / 문제 소개</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab2', this)">신고하기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab3', this)">모임 만들기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab4', this)">참여하기</button></li>
-        <li><button class="tab-btn" onclick="openTab('tab5', this)">인증 및 보상</button></li>
-    </ul>
-</header>
-
-<div class="container">
-    
-    <div id="tab1" class="tab-content active">
-        <h1>🌿 시민이 함께 만드는 깨끗한 창원</h1>
-        <div class="sub-title">쓰레기 문제를 발견하고, 플로깅 모임을 만들어 함께 해결하는 플랫폼</div>
-        <hr style="border: 0; height: 1px; background: #ddd; margin: 15px 0;">
-        
-        <div class="section-title">[창원시 쓰레기 방치 문제]</div>
-        <div class="section-desc">골목길, 공원, 하천, 학교 인근에 담배꽁초, 일회용 컵 등이 방치되어<br>악취, 미관 저하, 수질 오염 등의 사회적 문제가 발생하고 있습니다.</div>
-        
-        <div class="grid-frame">
-            <div class="grid-badge">⚠️ 미관 저하</div>
-            <div class="grid-badge">🤢 악취 발생</div>
-            <div class="grid-badge">💧 수질 오염</div>
-            <div class="grid-badge">🔄 무단투기 반복</div>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>🌿 클린창원 시민 로그인</h2>
+            <p style="font-size: 13px; color: #666;">환경 정화 활동 협업 리빙랩 플랫폼</p>
+            <input type="text" id="input-uid" placeholder="사용자 ID를 입력하세요">
+            <button onclick="tryLogin()">플랫폼 입장하기</button>
         </div>
-        
-        <div class="section-title" style="color:var(--color-primary); margin-top:25px;">[서비스 작동 방식]</div>
-        <div class="flow-box">🚨 신고 (지도 선택)  ➡️  📅 모임 개설 (실시간 연동)  ➡️  🏃‍♂️ 참여  ➡️  ✅ 사진 인증 및 보상</div>
+    </div>
+
+    <header>
+        <h1 id="main-title">🌿 클린창원 플랫폼</h1>
+        <p id="user-badge" style="font-size: 14px; font-weight: bold; color: #e3f2fd;"></p>
+    </header>
+
+    <nav>
+        <button class="nav-btn active" onclick="switchTab(1)">홈 / 문제 소개</button>
+        <button class="nav-btn" onclick="switchTab(2)">신고하기</button>
+        <button class="nav-btn" onclick="switchTab(3)">모임 만들기</button>
+        <button class="nav-btn" onclick="switchTab(4)">참여하기</button>
+        <button class="nav-btn" onclick="switchTab(5)">인증 및 보상</button>
+    </nav>
+
+    <div id="tab1" class="tab-content active" style="background-color: var(--color-bg);">
+        <div class="card" style="text-align: center;">
+            <h2 style="color: var(--color-primary); margin-bottom: 10px;">시민이 함께 만드는 깨끗한 창원</h2>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+            <h3 style="color: #c62828; margin-bottom: 10px;">[창원시 쓰레기 방치 문제]</h3>
+            <p style="line-height: 1.6; font-size: 14px; color: #444;">
+                골목길, 공원, 하천 주변에 담배꽁초와 방치된 일회용기 쓰레기들을<br>
+                시민들이 직접 스마트 기기를 활용해 신고하고 모임을 결성하여 해결하는 리빙랩 방식 플랫폼입니다.
+            </p>
+        </div>
     </div>
 
     <div id="tab2" class="tab-content">
-        <h1>🚨 더러운 지역 신고하기</h1>
-        
-        <div class="map-frame">
-            <span class="map-title">🗺️ 창원시 가상 지도 (아래 구역 버튼을 클릭하면 지역이 선택됩니다)</span>
-            <div class="map-btns">
-                <button class="map-btn" onclick="selectRegionMap('의창구')">의창구</button>
-                <button class="map-btn" onclick="selectRegionMap('성산구')">성산구</button>
-                <button class="map-btn" onclick="selectRegionMap('마산회원구')">마산회원구</button>
-                <button class="map-btn" onclick="selectRegionMap('마산합포구')">마산합포구</button>
-                <button class="map-btn" onclick="selectRegionMap('진해구')">진해구</button>
+        <div class="card">
+            <h2 style="color: var(--color-primary); margin-bottom: 15px;"><i class="fa-solid fa-triangle-exclamation"></i> 더러운 지역 신고하기</h2>
+            
+            <div class="map-frame">
+                <label>🗺️ 창원시 지도 지역구 빠른 선택</label>
+                <div class="map-grid">
+                    <button onclick="setRegion('의창구')">의창구</button>
+                    <button onclick="setRegion('성산구')">성산구</button>
+                    <button onclick="setRegion('마산회원구')">마산회원구</button>
+                    <button onclick="setRegion('마산합포구')">마산합포구</button>
+                    <button onclick="setRegion('진해구')">진해구</button>
+                </div>
             </div>
-        </div>
-        
-        <div class="form-frame">
+
             <div class="form-group">
-                <label>선택된 지역구:</label>
-                <select id="combo_region">
-                    <option value="위 지도 버튼을 누르거나 선택하세요">위 지도 버튼을 누르거나 선택하세요</option>
+                <label>선택된 지역구</label>
+                <select id="combo-region">
+                    <option value="">-- 지도를 클릭하거나 선택하세요 --</option>
                     <option value="의창구">의창구</option>
                     <option value="성산구">성산구</option>
                     <option value="마산회원구">마산회원구</option>
@@ -193,294 +211,451 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>상세 위치 입력:</label>
-                <input type="text" id="entry_loc" placeholder="상세 위치를 입력하세요">
+                <label>상세 위치 입력</label>
+                <input type="text" id="entry-loc" placeholder="예: 도계초등학교 앞 버스정류장">
             </div>
             <div class="form-group">
-                <label>쓰레기 종류:</label>
-                <input type="text" id="entry_type" placeholder="쓰레기 종류를 입력하세요">
+                <label>쓰레기 종류</label>
+                <input type="text" id="entry-type" placeholder="예: 플라스틱 컵, 담배꽁초">
             </div>
+            <button class="btn-submit" onclick="submitReport()">🚨 쓰레기 지역 신고 등록</button>
         </div>
-        
-        <button class="btn-action" onclick="submitReport()">🚨 쓰레기 지역 신고하기</button>
-        
-        <div class="text-box-frame" style="margin-top: 20px;">
-            <div style="font-weight: bold; margin-bottom: 6px; font-size:14px;">📋 실시간 시민 신고 내역 목록 (실시간 추가됨)</div>
-            <div id="report_text_box" class="list-box"></div>
+
+        <div class="card">
+            <h3>📋 실시간 신고 목록 (클릭 시 이 위치로 자동 모임 연동)</h3>
+            <div class="list-box" id="report-listbox">
+                </div>
         </div>
     </div>
 
     <div id="tab3" class="tab-content">
-        <h1>📅 새로운 플로깅 모임 개설</h1>
-        
-        <div class="form-stack">
-            <label>모임 이름:</label>
-            <input type="text" id="entry_gname">
+        <div class="card">
+            <h2 style="color: var(--color-primary); margin-bottom: 15px;"><i class="fa-solid fa-calendar-plus"></i> 새로운 플로깅 모임 개설</h2>
+            <div class="form-group">
+                <label>모임 이름</label>
+                <input type="text" id="entry-gname" placeholder="예: 창원천 산책로 플로깅">
+            </div>
+            <div class="form-group">
+                <label>활동 장소 명시</label>
+                <input type="text" id="entry-gloc" placeholder="예: 성산구 창원천 산책로 일대">
+            </div>
+            <div class="form-group" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>시작 시간 (시)</label>
+                    <select id="combo-start"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label>종료 시간 (시)</label>
+                    <select id="combo-end"></select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>모집 인원 제한 (명)</label>
+                <input type="number" id="entry-gmax" value="30">
+            </div>
+            <div class="form-group">
+                <label>모임 설명</label>
+                <textarea id="entry-gdesc" rows="3" placeholder="참여자분들을 위한 공지나 준비물을 적어주세요."></textarea>
+            </div>
+            <button class="btn-submit" onclick="createGroup()">📅 플로깅 모임 개설하기</button>
         </div>
-        <div class="form-stack">
-            <label>활동 장소 명시:</label>
-            <input type="text" id="entry_gloc">
-        </div>
-        <div class="form-stack">
-            <label>모집 인원 (최대 50명 제한):</label>
-            <input type="text" id="entry_gmax" placeholder="숫자만 입력">
-        </div>
-        <div class="form-stack">
-            <label>준비물 및 모임 설명:</label>
-            <textarea id="entry_gdesc" rows="4"></textarea>
-        </div>
-        
-        <button class="btn-action" onclick="createGroup()">📅 플로깅 모임 개설 및 등록</button>
     </div>
 
-    <div id="tab4" class="tab-content">
-        <h1>🏃‍♂️ 현재 참여 가능한 플로깅 모임 리스트</h1>
-        <div id="scroll_frame" class="scroll-container"></div>
+    <div id="tab4" class="tab-content" style="background-color: var(--color-bg);">
+        <h2 style="color: var(--color-primary); margin-bottom: 15px;"><i class="fa-solid fa-users"></i> 현재 참여 가능한 플로깅 모임 리스트</h2>
+        <div id="group-container">
+            </div>
     </div>
 
     <div id="tab5" class="tab-content">
-        <h1>✅ 정화 완료 인증 및 파일 첨부</h1>
-        
-        <div style="max-width: 550px; margin: 20px auto; line-height: 2.5;">
-            <div>
-                <label for="file_before" class="file-btn" style="background-color:#ffebee; color:#c62828;">📸 1. Before 사진 첨부 (활동 전)</label>
-                <input type="file" id="file_before" accept="image/*" style="display:none;" onchange="handleFileChange('before')">
-                <span id="lbl_b_status" class="file-status">선택된 파일 없음</span>
+        <div class="card" style="background: var(--color-accent);">
+            <h3>⚡ 1. 인증 대상 모임 실시간 검색 및 선택</h3>
+            <div class="form-group" style="margin-top: 10px;">
+                <input type="text" id="entry-search" oninput="filterCertCombo()" placeholder="🔍 모임 이름 실시간 검색어 입력...">
             </div>
-            <div>
-                <label for="file_after" class="file-btn" style="background-color:#e8f5e9; color:#2e7d32;">✨ 2. After 사진 첨부 (활동 후)</label>
-                <input type="file" id="file_after" accept="image/*" style="display:none;" onchange="handleFileChange('after')">
-                <span id="lbl_a_status" class="file-status">선택된 파일 없음</span>
+            <select id="combo-cert-group">
+                <option value="">-- 인증할 모임을 고르거나 위 창에 검색하세요 --</option>
+            </select>
+        </div>
+
+        <div class="card">
+            <div class="form-group">
+                <label>📸 Before 사진 첨부 (파일명 모의 입력)</label>
+                <input type="text" id="file-before" placeholder="가상 파일명 기입 (예: before_river.jpg)">
+            </div>
+            <div class="form-group">
+                <label>✨ After 사진 첨부 (파일명 모의 입력)</label>
+                <input type="text" id="file-after" placeholder="가상 파일명 기입 (예: after_river.jpg)">
+            </div>
+            <div class="form-group" style="display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="chk-group" style="width: auto;">
+                <label for="chk-group" style="margin: 0; cursor: pointer;">🧑‍🤝‍🧑 인원들과 찍은 단체 사진 증명을 포함합니다</label>
+            </div>
+            <button class="btn-submit" style="background: #1976d2;" onclick="submitCertification()">🛡️ 인증 서류 및 사진 최종 제출하기</button>
+        </div>
+
+        <div class="pane-container">
+            <div class="pane-left">
+                <h4>🌱 실시간 정화 인증 피드판 (클릭 시 우측 뷰어 연동)</h4>
+                <div class="list-box" id="cert-board-list" style="max-height: 280px;">
+                    </div>
+            </div>
+            <div class="pane-right" id="visual-monitor">
+                <h5 id="visual-title" style="text-align: center; background: #e0e0e0; padding: 4px; border-radius: 4px; color: blue;">인증 항목을 클릭하세요</h5>
+                <div class="img-placeholder" id="visual-before" style="background: #ffebee; color: #c62828;">[활동 전 사진]<br>(미선택)</div>
+                <div class="img-placeholder" id="visual-after" style="background: #e8f5e9; color: #2e7d32;">[활동 후 사진]<br>(미선택)</div>
             </div>
         </div>
-        
-        <div style="text-align: center; margin: 20px 0;">
-            <label style="font-size: 14px; cursor: pointer;">
-                <input type="checkbox" id="chk_group_photo"> 🧑‍🤝‍🧑 인원들과 단체 사진을 함께 제출합니다 (추가 인증 가산점)
-            </label>
-        </div>
-        
-        <button class="btn-action" style="background-color: #1976d2;" onclick="submitCert()">🛡️ 정화 활동 최종 인증하기</button>
     </div>
 
-</div>
+    <div id="chat-modal">
+        <div class="chat-box">
+            <div class="chat-header">
+                <span id="chat-room-title">모임방 대화</span>
+                <span style="cursor: pointer;" onclick="closeChat()"><i class="fa-solid fa-xmark"></i></span>
+            </div>
+            <div style="background: var(--color-accent); font-size: 12px; padding: 5px; font-weight: bold; text-align: center;" id="chat-auth-status"></div>
+            <div class="chat-messages" id="chat-messages-container"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input-msg" placeholder="메시지를 입력하세요...">
+                <button onclick="sendChatMessage()">전송</button>
+            </div>
+        </div>
+    </div>
 
-<footer>
-    <div>창원시 지역사회 문제 해결 프로젝트 | 학번 2106 김정원</div>
-    <div class="quote">"환경을 발견하고, 함께 행동하고, 깨끗한 지역을 만든다."</div>
-</footer>
+    <footer>
+        창원시 리빙랩 플랫폼 | 계정 보안 관제 중: <span id="footer-user"></span>
+    </footer>
 
-<script>
-    // ==========================================
-    // 파이어베이스 프로젝트 실시간 연동 설정 (정원의 hello-jiyeok 전용)
-    // ==========================================
-    const firebaseConfig = {
-        apiKey: "AIzaSyAfLlENivhQipjRVGLYoezBl18osHBL3Yc",
-        authDomain: "hello-jiyeok.firebaseapp.com",
-        databaseURL: "https://hello-jiyeok-default-rtdb.firebaseio.com/",
-        projectId: "hello-jiyeok",
-        storageBucket: "hello-jiyeok.firebasestorage.app",
-        messagingSenderId: "586616289104",
-        appId: "1:586616289104:web:d5d12c0882b96777f85e55"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-
-    // --- [공통 기능] 탭 전환 제어 (Notebook 스타일) ---
-    function openTab(tabId, btn) {
-        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(tabId).classList.add('active');
-        btn.classList.add('active');
-    }
-
-    // --- [탭 2 기능] 가상 지도 클릭 및 신고 서버 연동 ---
-    function selectRegionMap(regionName) {
-        document.getElementById('combo_region').value = regionName;
-        alert(`📍 지도를 통해 [${regionName}]이 선택되었습니다. 상세 위치를 입력해주세요.`);
-    }
-
-    // 파이어베이스 공용 데이터베이스에서 신고 리스트 실시간 리스닝 수신
-    database.ref('reported_list').on('value', (snapshot) => {
-        const box = document.getElementById('report_text_box');
-        box.innerHTML = '';
-        const data = snapshot.val();
+    <script>
+        // ==========================================
+        // 2. 파이어베이스 실제 정원이 계정 설정 연동
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAFLEnivhQipjRVGLYOezB1l8osHBL3Yc",
+            authDomain: "hello-jiyeok.firebaseapp.com",
+            projectId: "hello-jiyeok",
+            databaseURL: "https://hello-jiyeok-default-rtdb.firebaseio.com",
+            storageBucket: "hello-jiyeok.firebasestorage.app",
+            messagingSenderId: "586616289104",
+            appId: "1:586616289104:web:d5d12c0882b96777f85e55",
+            measurementId: "G-2G4LY17RWL"
+        };
         
-        let idx = 1;
-        if(data) {
-            Object.keys(data).forEach(key => {
-                const r = data[key];
-                box.innerHTML += `[${idx}] 지역구: ${escapeHtml(r.region)} | 상세위치: ${escapeHtml(r.loc)} | 주요쓰레기: ${escapeHtml(r.type)}<br>---------------------------------------------------------------------------------<br>`;
-                idx++;
-            });
-        } else {
-            box.innerHTML = "신고 내역이 존재하지 않습니다.";
+        // 파이어베이스 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let CURRENT_USER = "";
+        let currentOpenChatRoom = ""; 
+        let allGroupsCache = {}; 
+        let feedCacheMap = [];
+
+        // 시간 채우기 컴보박스 초기화
+        const startCombo = document.getElementById('combo-start');
+        const endCombo = document.getElementById('combo-end');
+        for(let i=0; i<24; i++) {
+            let hr = String(i).padStart(2, '0');
+            startCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
+            endCombo.innerHTML += `<option value="${hr}">${hr}</option>`;
         }
-    });
+        startCombo.value = "09"; endCombo.value = "11";
 
-    function submitReport() {
-        const reg = document.getElementById('combo_region').value;
-        const loc = document.getElementById('entry_loc').value.trim();
-        const typ = document.getElementById('entry_type').value.trim();
-
-        if(reg.includes("선택하세요") || !loc) {
-            alert("경고: 지역 선택과 상세 위치 입력은 필수입니다!");
-            return;
-        }
-
-        // 구글 실시간 서버 저장고로 전송
-        database.ref('reported_list').push({
-            region: reg,
-            loc: loc,
-            type: typ ? typ : "기타 쓰레기"
-        });
-
-        alert("🎉 신고가 접수되어 실시간 내역 창에 추가되었습니다!");
-        document.getElementById('entry_loc').value = '';
-        document.getElementById('entry_type').value = '';
-    }
-
-    // --- [탭 3 & 4 기능] 모임 생성 및 서버 실시간 카드 바인딩 ---
-    database.ref('group_list').on('value', (snapshot) => {
-        const scrollFrame = document.getElementById('scroll_frame');
-        scrollFrame.innerHTML = '';
-        
-        const data = snapshot.val();
-        
-        // 파이썬에 있던 2개의 기본 샘플 데이터 바인딩 (데이터베이스 비어있을 시 자동 백업 표시)
-        if(!data) {
-            renderSampleCard("1", "🌊 창원천 산책로 플로깅", "창원천 산책로 입구", "집게, 면장갑", 45, 50);
-            renderSampleCard("2", "🚌 학교 앞 버스정류장 정화 활동", "창원고등학교 앞 정류장", "쓰레기봉투, 생수", 12, 15);
-            return;
-        }
-
-        // 구글 서버에 저장된 방들을 화면에 실시간 드로잉
-        Object.keys(data).forEach(key => {
-            const g = data[key];
+        // ==========================================
+        // 3. 기능 메소드 구현 (파이썬 기능 웹 매핑)
+        // ==========================================
+        function tryLogin() {
+            const uid = document.getElementById('input-uid').value.trim();
+            if(!uid) { alert("아이디를 입력해 주세요!"); return; }
+            CURRENT_USER = uid;
             
-            const card = document.createElement('div');
-            card.className = 'meeting-card';
-            card.innerHTML = `
-                <div class="meeting-card-title">🌿 ${escapeHtml(g.name)}</div>
-                <div class="meeting-card-info">장소: ${escapeHtml(g.loc)} | 준비물: ${escapeHtml(g.desc)}</div>
-                <div class="meeting-card-count">참여 인원: <span id="curr_${key}" style="color:blue; font-weight:bold;">${g.current}</span> / ${g.max} 명</div>
-                <button id="btn_${key}" class="btn-join" ${g.current >= g.max ? 'disabled' : ''} onclick="joinGroupLogic('${key}', ${g.current}, ${g.max})">
-                    ${g.current >= g.max ? '모집 마감' : '참여하기'}
-                </button>
-            `;
-            scrollFrame.appendChild(card);
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('user-badge').innerText = `👋 반갑습니다, ${CURRENT_USER} 시민님`;
+            document.getElementById('footer-user').innerText = `[ ${CURRENT_USER} ]`;
+            alert(`👋 반갑습니디, ${CURRENT_USER}님!\n클린창원 환경 정화 활동에 동참해 주셔서 감사합니다.`);
+            
+            initFirebaseListeners();
+        }
+
+        function switchTab(tabIndex) {
+            document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(nb => nb.classList.remove('active'));
+            
+            document.getElementById(`tab${tabIndex}`).classList.add('active');
+            document.querySelectorAll('.nav-btn')[tabIndex-1].classList.add('active');
+        }
+
+        function setRegion(rName) {
+            document.getElementById('combo-region').value = rName;
+        }
+
+        // --- 파이어베이스 실시간 데이터 리스너 수신부 ---
+        function initFirebaseListeners() {
+            // 1) 신고하기 갱신 규칙
+            db.ref('reports').on('value', snapshot => {
+                const listbox = document.getElementById('report-listbox');
+                listbox.innerHTML = "";
+                let index = 1;
+                snapshot.forEach(child => {
+                    const data = child.val();
+                    const div = document.createElement('div');
+                    div.className = "list-item";
+                    div.innerText = `[${index++}] ${data.region} - ${data.loc} (${data.type})`;
+                    div.onclick = () => {
+                        if(confirm(`📍 [${data.loc}] 지역으로 모임을 자동으로 개설할까요?`)) {
+                            document.getElementById('entry-gname').value = `${data.loc} 정화 모임`;
+                            document.getElementById('entry-gloc').value = `${data.region} ${data.loc}`;
+                            switchTab(3);
+                        }
+                    };
+                    listbox.appendChild(div);
+                });
+            });
+
+            // 2) 플로깅 참여 모임 리스트 카드 동적 갱신
+            db.ref('groups').on('value', snapshot => {
+                const container = document.getElementById('group-container');
+                const certCombo = document.getElementById('combo-cert-group');
+                
+                container.innerHTML = "";
+                certCombo.innerHTML = `<option value="">-- 인증할 모임을 고르거나 위 창에 검색하세요 --</option>`;
+                
+                allGroupsCache = {};
+
+                snapshot.forEach(child => {
+                    const key = child.key;
+                    const g = child.val();
+                    allGroupsCache[key] = g;
+
+                    // 참여 탭 카드 그리기
+                    const card = document.createElement('div');
+                    card.className = "card group-card";
+                    
+                    // 내가 가입했는지 여부 자바스크립트 내 확인 판별
+                    const isJoined = g.members && g.members[CURRENT_USER] === true;
+                    const currentCount = g.members ? Object.keys(g.members).length : 0;
+                    const maxCount = g.max_p || 30;
+
+                    card.innerHTML = `
+                        <h3 style="color: var(--color-primary);">🌿 ${key}</h3>
+                        <p style="font-size: 14px; margin: 4px 0;">📍 장소: ${g.loc}</p>
+                        <p style="font-size: 13px; color: #666;">⏰ 시간: ${g.start_time}시 ~ ${g.end_time}시 | 설명: ${g.desc || '없음'}</p>
+                        <div class="group-meta">
+                            <div><strong style="color:blue;">${currentCount}</strong> / ${maxCount} 명</div>
+                            <div>
+                                <button class="btn-chat" onclick="openChat('${key}')">💬 소통방</button>
+                                ${isJoined ? 
+                                    `<button class="btn-leave" onclick="toggleGroup('${key}', 'leave')">🏃‍♂️ 참여 취소하기</button>` : 
+                                    `<button class="btn-join" onclick="toggleGroup('${key}', 'join')">참여하기</button>`
+                                }
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+
+                    // 인증용 드롭다운 목록 추가
+                    certCombo.innerHTML += `<option value="${key}">${key}</option>`;
+                });
+            });
+
+            // 3) 실시간 피드 인증 보드판 리스트 수신 갱신
+            db.ref('certs').on('value', snapshot => {
+                const list = document.getElementById('cert-board-list');
+                list.innerHTML = "";
+                feedCacheMap = [];
+
+                snapshot.forEach(child => {
+                    const c = child.val();
+                    feedCacheMap.push(c);
+                    
+                    const div = document.createElement('div');
+                    div.className = "list-item";
+                    div.innerText = `👤 ${c.user} | [${c.g_name}] 정화 인증 제출`;
+                    div.onclick = () => {
+                        document.getElementById('visual-title').innerText = `📌 ${c.g_name} (${c.user})`;
+                        document.getElementById('visual-title').style.color = "blue";
+                        document.getElementById('visual-before').innerHTML = `📷 Before 사진 로드 완료<br>파일명: ${c.before}<br><br>[ 가상 이미지 렌더링 ]<br>오염 구역 증명됨`;
+                        document.getElementById('visual-after').innerHTML = `✨ After 사진 로드 완료<br>파일명: ${c.after}<br><br>[ 가상 이미지 렌더링 ]<br>쓰레기 수거백 완료`;
+                    };
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        // --- 쓰레기 신고 전송 버튼 ---
+        function submitReport() {
+            const region = document.getElementById('combo-region').value;
+            const loc = document.getElementById('entry-loc').value.trim();
+            const type = document.getElementById('entry-type').value.trim();
+
+            if(!region || !loc) { alert("지역구와 상세위치를 올바르게 써주세요!"); return; }
+
+            db.ref('reports').push({
+                region: region,
+                loc: loc,
+                type: type ? type : "일반 쓰레기"
+            }).then(() => {
+                alert("성공적으로 신고가 등록되었습니다.");
+                document.getElementById('entry-loc').value = "";
+                document.getElementById('entry-type').value = "";
+            });
+        }
+
+        // --- 플로깅 개설 전송 버튼 ---
+        function createGroup() {
+            const name = document.getElementById('entry-gname').value.trim();
+            const loc = document.getElementById('entry-gloc').value.trim();
+            const start = document.getElementById('combo-start').value;
+            const end = document.getElementById('combo-end').value;
+            const max = parseInt(document.getElementById('entry-gmax').value) || 30;
+            const desc = document.getElementById('entry-gdesc').value;
+
+            if(!name || !loc) { alert("모임 이름과 활동 장소를 써주세요!"); return; }
+
+            // 최초 개설자 멤버 자동 가입 등록
+            let initMembers = {};
+            initMembers[CURRENT_USER] = true;
+
+            db.ref('groups/' + name).set({
+                loc: loc,
+                start_time: start,
+                end_time: end,
+                max_p: max,
+                desc: desc,
+                members: initMembers
+            }).then(() => {
+                // 개설 환영 메시지 자동 시스템 생성
+                db.ref('chats/' + name).push({
+                    user: "[시스템]",
+                    msg: `모임방이 개설되었습니다. 자유롭게 대화를 시작하세요!`
+                });
+                alert("완료: 모임이 새로 개설되어 즉시 자동 가입 처리되었습니다.");
+                switchTab(4);
+                document.getElementById('entry-gname').value = "";
+                document.getElementById('entry-gloc').value = "";
+                document.getElementById('entry-gdesc').value = "";
+            });
+        }
+
+        // --- 그룹 가입 / 탈퇴 처리 토글 토큰 ---
+        function toggleGroup(gKey, mode) {
+            const targetGroup = allGroupsCache[gKey];
+            const currentMembers = targetGroup.members ? Object.keys(targetGroup.members).length : 0;
+            
+            if(mode === 'join') {
+                if(currentMembers >= targetGroup.max_p) { alert("마감: 모집이 이미 마감되었습니다."); return; }
+                db.ref(`groups/${gKey}/members/${CURRENT_USER}`).set(true).then(() => {
+                    db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER}님이 입장했습니다!` });
+                    alert(`🏃‍♂️ [${gKey}] 참여 완료! 소통방 규칙을 준수하세요.`);
+                });
+            } else {
+                db.ref(`groups/${gKey}/members/${CURRENT_USER}`).remove().then(() => {
+                    db.ref(`chats/${gKey}`).push({ user: "[알림]", msg: `${CURRENT_USER}님이 퇴장하셨습니다.` });
+                    alert(`🚶‍♂️ [${gKey}] 모임 참여를 취소했습니다.`);
+                });
+            }
+        }
+
+        // --- 실시간 채팅 모달 열기 ---
+        function openChat(gKey) {
+            currentOpenChatRoom = gKey;
+            document.getElementById('chat-room-title').innerText = `💬 ${gKey} - 실시간 소통방`;
+            document.getElementById('chat-modal').style.display = 'flex';
+            
+            const g = allGroupsCache[gKey];
+            const isJoined = g.members && g.members[CURRENT_USER] === true;
+            const authBar = document.getElementById('chat-auth-status');
+            const inputTxt = document.getElementById('chat-input-msg');
+            
+            if(isJoined) {
+                authBar.innerText = `✅ ${CURRENT_USER}님: 참여자 실시간 권한 인증됨`;
+                authBar.style.color = "#2e7d32";
+                inputTxt.disabled = false;
+            } else {
+                authBar.innerText = `🔒 권한 제한: 참여자만 실시간 대화가 가능합니다.`;
+                authBar.style.color = "#c62828";
+                inputTxt.disabled = true;
+            }
+
+            // 실시간 채팅 리스너 연결 부착
+            db.ref(`chats/${gKey}`).off(); // 중복 방지 제거
+            db.ref(`chats/${gKey}`).on('value', snapshot => {
+                const container = document.getElementById('chat-messages-container');
+                container.innerHTML = "";
+                snapshot.forEach(child => {
+                    const d = child.val();
+                    container.innerHTML += `<div><strong>${d.user}:</strong> ${d.msg}</div>`;
+                });
+                container.scrollTop = container.scrollHeight; // 자동 스크롤 하단
+            });
+        }
+
+        function closeChat() {
+            document.getElementById('chat-modal').style.display = 'none';
+        }
+
+        function sendChatMessage() {
+            const msg = document.getElementById('chat-input-msg').value.trim();
+            if(!msg || !currentOpenChatRoom) return;
+            
+            db.ref(`chats/${currentOpenChatRoom}`).push({
+                user: CURRENT_USER,
+                msg: msg
+            }).then(() => {
+                document.getElementById('chat-input-msg').value = "";
+            });
+        }
+
+        // 엔터치면 채팅 전송 기능 추가
+        document.getElementById('chat-input-msg').addEventListener('keypress', function(e){
+            if(e.key === 'Enter') sendChatMessage();
         });
-    });
 
-    function renderSampleCard(id, name, loc, desc, curr, max) {
-        const scrollFrame = document.getElementById('scroll_frame');
-        const card = document.createElement('div');
-        card.className = 'meeting-card';
-        card.innerHTML = `
-            <div class="meeting-card-title">${name}</div>
-            <div class="meeting-card-info">장소: ${loc} | 준비물: ${desc}</div>
-            <div class="meeting-card-count">참여 인원: <span id="curr_sample_${id}" style="color:blue; font-weight:bold;">${curr}</span> / ${max} 명</div>
-            <button id="btn_sample_${id}" class="btn-join" onclick="alert('샘플 카드는 실시간 참여 테스트를 위해 새 모임을 만들어서 진행해 보세요!')">참여하기</button>
-        `;
-        scrollFrame.appendChild(card);
-    }
+        // --- 탭 5. 실시간 자소 매칭 검색 필터 필터링 ---
+        function filterCertCombo() {
+            const query = document.getElementById('entry-search').value.trim().toLowerCase();
+            const certCombo = document.getElementById('combo-cert-group');
+            certCombo.innerHTML = "";
 
-    function createGroup() {
-        const name = document.getElementById('entry_gname').value.trim();
-        const loc = document.getElementById('entry_gloc').value.trim();
-        const maxStr = document.getElementById('entry_gmax').value.trim();
-        const desc = document.getElementById('entry_gdesc').value.trim();
-
-        const max_p = parseInt(maxStr);
-        if(!name || !loc || isNaN(max_p)) {
-            alert("오류: 모집 인원은 숫자로 적어주세요.");
-            return;
-        }
-        if(max_p > 50) {
-            alert("경고: 한 모임의 최대 인원은 50명입니다!");
-            return;
+            Object.keys(allGroupsCache).forEach(key => {
+                if(key.toLowerCase().includes(query)) {
+                    certCombo.innerHTML += `<option value="${key}">${key}</option>`;
+                }
+            });
         }
 
-        // 실시간 글로벌 공용 데이터베이스방 개설 전송
-        database.ref('group_list').push({
-            name: name,
-            loc: loc,
-            max: max_p,
-            desc: desc,
-            current: 1
-        });
+        // --- 탭 5. 정화 최종 인증 제출 처리 함수 ---
+        function submitCertification() {
+            const gKey = document.getElementById('combo-cert-group').value;
+            const beforeF = document.getElementById('file-before').value.trim();
+            const afterF = document.getElementById('file-after').value.trim();
+            const groupChecked = document.getElementById('chk-group').checked;
 
-        alert(`📅 [${name}] 모임이 생성되었습니다!\n'참여하기' 탭으로 즉시 전송 및 반영되었습니다.`);
-        
-        // 폼 초기화
-        document.getElementById('entry_gname').value = '';
-        document.getElementById('entry_gloc').value = '';
-        document.getElementById('entry_gmax').value = '';
-        document.getElementById('entry_gdesc').value = '';
+            if(!gKey) { alert("인증할 대상 모임을 선택하세요!"); return; }
+            
+            const g = allGroupsCache[gKey];
+            const isJoined = g.members && g.members[CURRENT_USER] === true;
+            
+            if(!isJoined) {
+                alert(`🚨 권한 에러\n허가되지 않은 접근입니다!\n시민님은 현재 [${gKey}] 모임에 가입되어 있지 않습니다.`);
+                return;
+            }
 
-        // 탭 이동 시뮬레이션
-        openTab('tab4', document.querySelectorAll('.tab-btn')[3]);
-    }
+            if(!beforeF || !afterF) { alert("Before 및 After 증빙 파일명을 모두 입력해 주세요!"); return; }
 
-    function joinGroupLogic(key, current_val, max_val) {
-        if(current_val >= max_val) {
-            alert("모집이 마감되었습니다.");
-            return;
+            db.ref('certs').push({
+                g_name: gKey,
+                user: CURRENT_USER,
+                before: beforeF,
+                after: afterF,
+                group_photo: groupChecked ? "포함됨" : "미포함"
+            }).then(() => {
+                alert(`🎉 ${CURRENT_USER}님의 사진 증거 검증이 완료되어 피드판에 공유되었습니다!`);
+                document.getElementById('file-before').value = "";
+                document.getElementById('file-after').value = "";
+                document.getElementById('chk-group').checked = false;
+            });
         }
-        
-        // 서버의 참여자 수를 카운트 업 연산
-        database.ref('group_list').child(key).update({
-            current: current_val + 1
-        });
-        
-        alert("🏃‍♂️ 플로깅 모임 참여 신청 완료! 현장에서 만나요.");
-    }
-
-    // --- [탭 5 기능] 파일 처리 및 인증 매칭 로직 ---
-    function handleFileChange(type) {
-        const fileInput = document.getElementById(`file_${type}`);
-        const statusLabel = document.getElementById(`lbl_${type}_status`);
-        if(fileInput.files.length > 0) {
-            statusLabel.innerText = `📁 선택됨: ${fileInput.files[0].name}`;
-            statusLabel.style.color = "green";
-        }
-    }
-
-    function submitCert() {
-        const bStatus = document.getElementById('lbl_b_status').innerText;
-        const aStatus = document.getElementById('lbl_a_status').innerText;
-        const isGroup = document.getElementById('chk_group_photo').checked;
-
-        if(bStatus.includes("없음") || aStatus.includes("없음")) {
-            alert("사진 누락: 활동 전(Before)과 활동 후(After) 사진을 모두 첨부해야 인증이 가능합니다!");
-            return;
-        }
-
-        let msg = "✅ 정화 활동이 성공적으로 인증되었습니다!\n";
-        if(isGroup) {
-            msg += "💡 단체 사진 가산 포인트가 함께 접수되었습니다.\n";
-        }
-        msg += "관리자 최종 매칭 검토 후 마일리지가 지급됩니다.";
-
-        alert(msg);
-        
-        // 상태 초기화 복원
-        document.getElementById('lbl_b_status').innerText = "선택된 파일 없음";
-        document.getElementById('lbl_b_status').style.color = "gray";
-        document.getElementById('lbl_a_status').innerText = "선택된 파일 없음";
-        document.getElementById('lbl_a_status').style.color = "gray";
-        document.getElementById('file_before').value = '';
-        document.getElementById('file_after').value = '';
-        document.getElementById('chk_group_photo').checked = false;
-    }
-
-    // 특수문자 이스케이프 보안 필터 처리
-    function escapeHtml(text) {
-        if (!text) return '';
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
-</script>
+    </script>
 </body>
 </html>
